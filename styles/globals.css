@@ -1,6 +1,9 @@
-/* styles/globals.css */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Leave the rest of this file empty for now */
+
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}

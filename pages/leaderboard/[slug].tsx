@@ -45,16 +45,16 @@ export default function LeaderboardPage({
   gameSlug,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-4xl md:text-5xl font-bold mb-8 text-center">
+    <div className="max-w-5xl mx-auto p-6 bg-gradient-to-br from-white to-gray-100 dark:from-slate-900 dark:to-slate-800 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700">
+      <h1 className="text-4xl md:text-5xl font-extrabold mb-8 text-center">
         <span className="text-primary capitalize">
           {gameSlug.replace("-", " ")}
-        </span>
-        <span className="text-white"> Leaderboard</span>
+        </span>{" "}
+        <span className="text-gray-800 dark:text-white">Leaderboard</span>
       </h1>
 
-      <div className="rounded-lg overflow-hidden bg-slate-800/50">
-        <table className="min-w-full">
+      <div className="rounded-lg overflow-hidden shadow-md bg-white/90 dark:bg-slate-800/70 backdrop-blur">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
           <thead className="bg-primary text-white">
             <tr>
               <th className="px-5 py-4 text-left text-sm font-bold uppercase tracking-wider">
@@ -71,14 +71,14 @@ export default function LeaderboardPage({
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
             {scores && scores.length > 0 ? (
               scores.map((entry, index) => (
                 <tr
                   key={`${entry.name}-${index}`}
-                  className="border-b border-slate-700 last:border-b-0"
+                  className="hover:bg-primary/10 dark:hover:bg-primary/20 transition"
                 >
-                  <td className="px-5 py-4 font-bold text-lg text-white">
+                  <td className="px-5 py-4 font-bold text-lg text-gray-800 dark:text-white">
                     {index + 1}
                   </td>
                   <td className="px-5 py-4">
@@ -90,22 +90,25 @@ export default function LeaderboardPage({
                         width={40}
                         height={40}
                       />
-                      <p className="ml-3 font-semibold text-white">
+                      <p className="ml-3 font-semibold text-gray-800 dark:text-white">
                         {entry.name}
                       </p>
                     </div>
                   </td>
-                  <td className="px-5 py-4 font-semibold text-white">
+                  <td className="px-5 py-4 font-semibold text-gray-800 dark:text-white">
                     {entry.score}
                   </td>
-                  <td className="px-5 py-4 text-slate-400">
+                  <td className="px-5 py-4 text-sm text-gray-500 dark:text-slate-400">
                     {new Date(entry.timestamp).toLocaleDateString()}
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="text-center py-16 text-slate-400">
+                <td
+                  colSpan={4}
+                  className="text-center py-16 text-gray-500 dark:text-slate-400"
+                >
                   No scores submitted yet. Be the first!
                 </td>
               </tr>
@@ -114,10 +117,10 @@ export default function LeaderboardPage({
         </table>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-8 text-center">
         <Link
           href={`/games/${gameSlug}`}
-          className="inline-block bg-primary hover:bg-primary-dark text-white font-bold py-3 px-6 rounded-lg transition-colors"
+          className="inline-block bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold py-3 px-6 rounded-full transition-shadow shadow-md"
         >
           ‹ Back to Game
         </Link>

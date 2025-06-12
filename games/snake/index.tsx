@@ -1,6 +1,6 @@
 // games/snake/index.tsx
-import React, { useState, useRef, useEffect } from 'react';
-import { useSession } from 'next-auth/react'; // For the next step
+import React, { useState, useRef, useEffect } from "react";
+import { useSession } from "next-auth/react"; // For the next step
 
 // --- Constants ---
 const CANVAS_SIZE = 400;
@@ -18,7 +18,7 @@ const generateFood = (snakeBody: Point[]): Point => {
       x: Math.floor(Math.random() * GRID_SIZE),
       y: Math.floor(Math.random() * GRID_SIZE),
     };
-  } while (snakeBody.some(s => s.x === newFood.x && s.y === newFood.y));
+  } while (snakeBody.some((s) => s.x === newFood.x && s.y === newFood.y));
   return newFood;
 };
 
@@ -32,7 +32,7 @@ const SnakeGame = () => {
   const [score, setScore] = useState(0);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  
+
   // --- Refs for Game Loop ---
   // We use refs for game logic that shouldn't trigger re-renders
   const gameLoopRef = useRef<number | null>(null);
@@ -55,36 +55,36 @@ const SnakeGame = () => {
       const key = e.key.toUpperCase();
       const currentDir = directionRef.current;
 
-      if ((key === 'W' || key === 'ARROWUP') && currentDir.y === 0) {
+      if ((key === "W" || key === "ARROWUP") && currentDir.y === 0) {
         setDirection({ x: 0, y: -1 });
-      } else if ((key === 'S' || key === 'ARROWDOWN') && currentDir.y === 0) {
+      } else if ((key === "S" || key === "ARROWDOWN") && currentDir.y === 0) {
         setDirection({ x: 0, y: 1 });
-      } else if ((key === 'A' || key === 'ARROWLEFT') && currentDir.x === 0) {
+      } else if ((key === "A" || key === "ARROWLEFT") && currentDir.x === 0) {
         setDirection({ x: -1, y: 0 });
-      } else if ((key === 'D' || key === 'ARROWRIGHT') && currentDir.x === 0) {
+      } else if ((key === "D" || key === "ARROWRIGHT") && currentDir.x === 0) {
         setDirection({ x: 1, y: 0 });
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []); // Empty dependency array: this setup runs only once
 
   useEffect(() => {
     // Check if the game has just ended, the score is greater than 0, and the user is logged in.
     if (isGameOver && score > 0 && session?.user?.id) {
       console.log(`Game over! Submitting score: ${score}`);
-      
+
       const submitScore = async () => {
         try {
-          const response = await fetch('/api/scores', {
-            method: 'POST',
+          const response = await fetch("/api/scores", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               userId: session.user.id, // The user's ID from the session
-              gameSlug: 'snake',      // The slug for this game
-              score: score,           // The final score
+              gameSlug: "snake", // The slug for this game
+              score: score, // The final score
             }),
           });
 
@@ -93,15 +93,15 @@ const SnakeGame = () => {
           }
 
           const data = await response.json();
-          console.log('Score submitted successfully:', data);
+          console.log("Score submitted successfully:", data);
         } catch (error) {
-          console.error('Error submitting score:', error);
+          console.error("Error submitting score:", error);
         }
       };
 
       submitScore();
     }
-  }, [isGameOver, score, session]); 
+  }, [isGameOver, score, session]);
   // --- The Main Game Loop `useEffect` ---
   useEffect(() => {
     if (isGameOver) {
@@ -113,14 +113,19 @@ const SnakeGame = () => {
       // Use the ref for direction to get the latest value
       const currentDirection = directionRef.current;
 
-      setSnake(prevSnake => {
+      setSnake((prevSnake) => {
         const newHead = {
           x: prevSnake[0].x + currentDirection.x,
           y: prevSnake[0].y + currentDirection.y,
         };
 
         // Wall collision
-        if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE) {
+        if (
+          newHead.x < 0 ||
+          newHead.x >= GRID_SIZE ||
+          newHead.y < 0 ||
+          newHead.y >= GRID_SIZE
+        ) {
           setIsGameOver(true);
           return prevSnake;
         }
@@ -137,7 +142,7 @@ const SnakeGame = () => {
 
         // Food collision
         if (newHead.x === food.x && newHead.y === food.y) {
-          setScore(s => s + 10);
+          setScore((s) => s + 10);
           setFood(generateFood(newSnake));
         } else {
           newSnake.pop();
@@ -158,35 +163,59 @@ const SnakeGame = () => {
   // --- Drawing `useEffect` ---
   useEffect(() => {
     const canvas = canvasRef.current;
-    const context = canvas?.getContext('2d');
+    const context = canvas?.getContext("2d");
     if (!context) return;
 
     context.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    context.fillStyle = 'lightgreen';
-    snake.forEach(segment => context.fillRect(segment.x * TILE_SIZE, segment.y * TILE_SIZE, TILE_SIZE, TILE_SIZE));
-    context.fillStyle = 'red';
-    context.fillRect(food.x * TILE_SIZE, food.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    context.fillStyle = "lightgreen";
+    snake.forEach((segment) =>
+      context.fillRect(
+        segment.x * TILE_SIZE,
+        segment.y * TILE_SIZE,
+        TILE_SIZE,
+        TILE_SIZE
+      )
+    );
+    context.fillStyle = "red";
+    context.fillRect(
+      food.x * TILE_SIZE,
+      food.y * TILE_SIZE,
+      TILE_SIZE,
+      TILE_SIZE
+    );
   }, [snake, food]); // Re-draw whenever the snake or food changes
 
+  useEffect(() => {
+    canvasRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
+
   return (
-    <div className="flex flex-col items-center">
-      <h2 className="text-2xl font-bold mb-2 text-gray-800 dark:text-gray-100">Snake</h2>
-      <p className="mb-4 text-lg font-semibold text-primary">Score: {score}</p>
-      <div className="relative">
+    <div className="flex flex-col items-center p-6 bg-gradient-to-br from-white to-gray-100 dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 max-w-md mx-auto">
+      <h2 className="text-3xl font-extrabold mb-2 text-gray-900 dark:text-white tracking-wide">
+        🐍 Snake
+      </h2>
+
+      <p className="mb-4 text-lg font-semibold text-primary bg-primary/10 dark:bg-primary/20 px-4 py-1 rounded-full shadow-sm backdrop-blur-sm">
+        Score: {score}
+      </p>
+
+      <div className="relative rounded-lg overflow-hidden shadow-lg">
         <canvas
           ref={canvasRef}
           width={CANVAS_SIZE}
           height={CANVAS_SIZE}
-          className="bg-slate-800 border-4 border-primary"
+          className="bg-slate-800 border-4 border-primary rounded-lg"
         />
         {isGameOver && (
-          <div className="absolute inset-0 bg-black/70 flex flex-col justify-center items-center">
-            <p className="text-4xl font-bold text-white">Game Over</p>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col justify-center items-center rounded-lg">
+            <p className="text-4xl font-extrabold text-white drop-shadow-lg">
+              💀 Game Over
+            </p>
             <button
               onClick={restartGame}
-              className="mt-4 px-6 py-2 bg-primary hover:bg-primary-dark text-white font-bold rounded-md transition"
+              className="mt-6 px-6 py-2 bg-gradient-to-r from-pink-500 to-red-500 hover:from-red-600 hover:to-pink-600 text-white font-bold rounded-full transition shadow-md"
             >
-              Restart
+              🔄 Restart
             </button>
           </div>
         )}
