@@ -1,6 +1,6 @@
 // components/Navbar.tsx
 import Link from "next/link";
-import { useSession, signIn, signOut } from "next-auth/react"; // Import hooks
+import { useSession, signOut } from "next-auth/react"; // Import hooks
 import ThemeSwitcher from "./ThemeSwitcher"; // <-- Import
 
 export default function Navbar() {
