@@ -6,7 +6,6 @@ import ThemeSwitcher from './ThemeSwitcher'; // <-- Import
 export default function Navbar() {
   // Get session data and status
   const { data: session, status } = useSession();
-  const isLoading = status === 'loading';
 
   return (
   <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md text-gray-800 dark:text-gray-100 p-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">

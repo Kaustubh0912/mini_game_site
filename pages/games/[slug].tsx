@@ -90,7 +90,7 @@ export default function GamePage({ gameInfo }: InferGetStaticPropsType<typeof ge
           <div className="text-center p-10 bg-white rounded-lg shadow-md">
             <h2 className="text-2xl font-semibold">Game Not Implemented</h2>
             <p className="mt-2 text-gray-600">
-              The game logic for "{gameInfo.name}" has not been added yet.
+              The game logic for &quot;{gameInfo.name}&quot; has not been added yet.
             </p>
           </div>
         )}

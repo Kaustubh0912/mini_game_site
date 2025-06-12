@@ -35,7 +35,7 @@ const SnakeGame = () => {
   
   // --- Refs for Game Loop ---
   // We use refs for game logic that shouldn't trigger re-renders
-  const gameLoopRef = useRef<number>();
+  const gameLoopRef = useRef<number | null>(null);
   const directionRef = useRef(direction);
   directionRef.current = direction; // Keep the ref updated with the latest state
 

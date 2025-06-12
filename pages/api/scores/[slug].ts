@@ -1,7 +1,6 @@
 // pages/api/scores/[slug].ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import clientPromise from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
 
 // This code is already perfect and does not need to be changed.
 // It correctly reads the high scores and prepares them for the leaderboard.
