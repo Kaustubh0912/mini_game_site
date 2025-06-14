@@ -6,7 +6,8 @@ import { ParsedUrlQuery } from 'querystring';
 
 // Import game components
 import TicTacToeGame from '@/games/tic-tac-toe';
-import SnakeGame from '@/games/snake'; // <-- 1. Import the new game
+import SnakeGame from '@/games/snake';
+import BreakoutGame from '@/games/breakout'; 
 
 import Link from 'next/link';
 // Import other games as you create them
@@ -16,6 +17,7 @@ import Link from 'next/link';
 const gameComponents: { [key: string]: React.ComponentType } = {
   'tic-tac-toe': TicTacToeGame,
   'snake': SnakeGame,
+  'breakout': BreakoutGame,
 };
 
 // Define the shape of the context params for getStaticProps
