@@ -1,6 +1,5 @@
-// games/snake/index.tsx
 import React, { useState, useRef, useEffect } from "react";
-import { useSession } from "next-auth/react"; // For the next step
+import { useSession } from "next-auth/react";
 
 // --- Constants ---
 const CANVAS_SIZE = 400;
@@ -10,7 +9,7 @@ const GAME_SPEED = 150;
 
 type Point = { x: number; y: number };
 
-// --- Helper ---
+// --- Helper: Generate new food ---
 const generateFood = (snakeBody: Point[]): Point => {
   let newFood: Point;
   do {
@@ -22,27 +21,31 @@ const generateFood = (snakeBody: Point[]): Point => {
   return newFood;
 };
 
-// --- The Game Component ---
-const SnakeGame = () => {
+// --- Main Component ---
+export default function SnakeGame() {
   const { data: session } = useSession();
+
+  // --- State ---
   const [snake, setSnake] = useState<Point[]>([{ x: 10, y: 10 }]);
-  const [food, setFood] = useState(() => generateFood(snake));
+  const [food, setFood] = useState<Point>(() =>
+    generateFood([{ x: 10, y: 10 }])
+  );
   const [direction, setDirection] = useState<Point>({ x: 0, y: -1 });
   const [isGameOver, setIsGameOver] = useState(false);
   const [score, setScore] = useState(0);
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  // --- Refs for Game Loop ---
-  // We use refs for game logic that shouldn't trigger re-renders
-  const gameLoopRef = useRef<number | null>(null);
+  // --- Refs ---
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const directionRef = useRef(direction);
-  directionRef.current = direction; // Keep the ref updated with the latest state
+  const directionChangedRef = useRef(false);
 
-  // --- Game Restart Logic ---
+  directionRef.current = direction;
+
+  // --- Restart Logic ---
   const restartGame = () => {
-    setSnake([{ x: 10, y: 10 }]);
-    setFood(generateFood([{ x: 10, y: 10 }]));
+    const initial = { x: 10, y: 10 };
+    setSnake([initial]);
+    setFood(generateFood([initial]));
     setDirection({ x: 0, y: -1 });
     setScore(0);
     setIsGameOver(false);
@@ -51,96 +54,80 @@ const SnakeGame = () => {
   // --- Keyboard Controls ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      e.preventDefault();
-      const key = e.key.toUpperCase();
-      const currentDir = directionRef.current;
+      if (directionChangedRef.current) return;
 
-      if ((key === "W" || key === "ARROWUP") && currentDir.y === 0) {
+      const key = e.key.toUpperCase();
+      const { x, y } = directionRef.current;
+
+      if ((key === "W" || key === "ARROWUP") && y === 0) {
         setDirection({ x: 0, y: -1 });
-      } else if ((key === "S" || key === "ARROWDOWN") && currentDir.y === 0) {
+        directionChangedRef.current = true;
+      } else if ((key === "S" || key === "ARROWDOWN") && y === 0) {
         setDirection({ x: 0, y: 1 });
-      } else if ((key === "A" || key === "ARROWLEFT") && currentDir.x === 0) {
+        directionChangedRef.current = true;
+      } else if ((key === "A" || key === "ARROWLEFT") && x === 0) {
         setDirection({ x: -1, y: 0 });
-      } else if ((key === "D" || key === "ARROWRIGHT") && currentDir.x === 0) {
+        directionChangedRef.current = true;
+      } else if ((key === "D" || key === "ARROWRIGHT") && x === 0) {
         setDirection({ x: 1, y: 0 });
+        directionChangedRef.current = true;
       }
     };
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []); // Empty dependency array: this setup runs only once
+  }, []);
 
+  // --- Score Submission (on game over) ---
   useEffect(() => {
-    // Check if the game has just ended, the score is greater than 0, and the user is logged in.
-    if (isGameOver && score > 0 && session?.user?.id) {
-      console.log(`Game over! Submitting score: ${score}`);
+    if (!isGameOver || score <= 0 || !session?.user?.id) return;
 
-      const submitScore = async () => {
-        try {
-          const response = await fetch("/api/scores", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              userId: session.user.id, // The user's ID from the session
-              gameSlug: "snake", // The slug for this game
-              score: score, // The final score
-            }),
-          });
+    fetch("/api/scores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: session.user.id,
+        gameSlug: "snake",
+        score,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => console.log("Score submitted:", data))
+      .catch((err) => console.error("Submit error:", err));
+  }, [isGameOver]);
 
-          if (!response.ok) {
-            throw new Error(`API call failed with status: ${response.status}`);
-          }
-
-          const data = await response.json();
-          console.log("Score submitted successfully:", data);
-        } catch (error) {
-          console.error("Error submitting score:", error);
-        }
-      };
-
-      submitScore();
-    }
-  }, [isGameOver, score, session]);
-  // --- The Main Game Loop `useEffect` ---
+  // --- Game Loop ---
   useEffect(() => {
-    if (isGameOver) {
-      // TODO: Submit score in the final step
-      return;
-    }
+    if (isGameOver) return;
 
     const gameLoop = () => {
-      // Use the ref for direction to get the latest value
+      directionChangedRef.current = false;
+
       const currentDirection = directionRef.current;
 
-      setSnake((prevSnake) => {
+      setSnake((prev) => {
         const newHead = {
-          x: prevSnake[0].x + currentDirection.x,
-          y: prevSnake[0].y + currentDirection.y,
+          x: prev[0].x + currentDirection.x,
+          y: prev[0].y + currentDirection.y,
         };
 
-        // Wall collision
-        if (
+        // Wall or self collision
+        const hitWall =
           newHead.x < 0 ||
           newHead.x >= GRID_SIZE ||
           newHead.y < 0 ||
-          newHead.y >= GRID_SIZE
-        ) {
+          newHead.y >= GRID_SIZE;
+        const hitSelf = prev.some(
+          (seg) => seg.x === newHead.x && seg.y === newHead.y
+        );
+        if (hitWall || hitSelf) {
           setIsGameOver(true);
-          return prevSnake;
+          return prev;
         }
 
-        // Self collision
-        for (let segment of prevSnake) {
-          if (segment.x === newHead.x && segment.y === newHead.y) {
-            setIsGameOver(true);
-            return prevSnake;
-          }
-        }
+        const newSnake = [newHead, ...prev];
 
-        const newSnake = [newHead, ...prevSnake];
-
-        // Food collision
+        // Eat food
         if (newHead.x === food.x && newHead.y === food.y) {
           setScore((s) => s + 10);
           setFood(generateFood(newSnake));
@@ -152,43 +139,35 @@ const SnakeGame = () => {
       });
     };
 
-    // Set up the interval
     const intervalId = setInterval(gameLoop, GAME_SPEED);
-    gameLoopRef.current = intervalId as unknown as number;
-
-    // Clean up the interval on unmount or when game is over
     return () => clearInterval(intervalId);
-  }, [isGameOver, food]); // Re-run the effect only when game state changes
+  }, [isGameOver, food]);
 
-  // --- Drawing `useEffect` ---
+  // --- Drawing ---
   useEffect(() => {
     const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!context) return;
+    const ctx = canvas?.getContext("2d");
+    if (!ctx) return;
 
-    context.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    context.fillStyle = "lightgreen";
-    snake.forEach((segment) =>
-      context.fillRect(
-        segment.x * TILE_SIZE,
-        segment.y * TILE_SIZE,
-        TILE_SIZE,
-        TILE_SIZE
-      )
-    );
-    context.fillStyle = "red";
-    context.fillRect(
-      food.x * TILE_SIZE,
-      food.y * TILE_SIZE,
-      TILE_SIZE,
-      TILE_SIZE
-    );
-  }, [snake, food]); // Re-draw whenever the snake or food changes
+    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
+    // Draw snake
+    ctx.fillStyle = "#4ade80";
+    snake.forEach((seg) =>
+      ctx.fillRect(seg.x * TILE_SIZE, seg.y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+    );
+
+    // Draw food
+    ctx.fillStyle = "#ef4444";
+    ctx.fillRect(food.x * TILE_SIZE, food.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+  }, [snake, food]);
+
+  // --- Auto-scroll into view on load ---
   useEffect(() => {
     canvasRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
 
+  // --- Render ---
   return (
     <div className="flex flex-col items-center p-6 bg-gradient-to-br from-white to-gray-100 dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 max-w-md mx-auto">
       <h2 className="text-3xl font-extrabold mb-2 text-gray-900 dark:text-white tracking-wide">
@@ -222,6 +201,4 @@ const SnakeGame = () => {
       </div>
     </div>
   );
-};
-
-export default SnakeGame;
+}
