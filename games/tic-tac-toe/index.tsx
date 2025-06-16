@@ -1,5 +1,5 @@
 import { useSession } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // --- Utility: Determine the winner ---
 function calculateWinner(squares: (string | null)[]) {
@@ -62,6 +62,9 @@ export default function TicTacToeGame() {
   const [board, setBoard] = useState<(string | null)[]>(Array(9).fill(null));
   const [xIsNext, setXIsNext] = useState(true);
 
+  const nextStarterRef = useRef(true); // true = X starts, false = O (AI) starts
+
+
   const winner = calculateWinner(board);
   const isDraw = board.every(cell => cell !== null) && !winner;
 
@@ -116,15 +119,20 @@ export default function TicTacToeGame() {
   };
 
   const handleRestart = () => {
-    setBoard(Array(9).fill(null));
-    setXIsNext(true);
-  };
+  setBoard(Array(9).fill(null));
+  nextStarterRef.current = !nextStarterRef.current;
+  setXIsNext(nextStarterRef.current);
+};
+
+
 
   const status = winner
-    ? `Winner: ${winner}!`
-    : isDraw
-    ? "It's a draw!"
-    : `Your turn: ${xIsNext ? "X" : "O"}`;
+  ? `Winner: ${winner}!`
+  : isDraw
+  ? "It's a draw!"
+  : xIsNext
+  ? "Your turn: X"
+  : "AI is thinking...";
 
   return (
     <div className="flex flex-col items-center p-6 bg-gradient-to-br from-white to-gray-100 dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 max-w-md mx-auto">
