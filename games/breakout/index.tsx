@@ -23,9 +23,9 @@ type Pattern = "pyramid" | "wall" | "checkerboard" | "spaced";
 
 // --- Brick Generator ---
 const createBricks = (): Brick[][] => {
-  const pattern: Pattern = ["pyramid", "wall", "checkerboard", "spaced"][
+  const pattern = (["pyramid", "wall", "checkerboard", "spaced"][
     Math.floor(Math.random() * 4)
-  ];
+  ]) as Pattern;
 
   return Array.from({ length: BRICK_COLUMN_COUNT }, (_, c) =>
     Array.from({ length: BRICK_ROW_COUNT }, (_, r) => {
@@ -59,7 +59,7 @@ const BreakoutGame = () => {
   const [ballY, setBallY] = useState(CANVAS_HEIGHT - 30);
   const [ballDX, setBallDX] = useState(INITIAL_BALL_SPEED);
   const [ballDY, setBallDY] = useState(-INITIAL_BALL_SPEED);
-  const [bricks, setBricks] = useState(createBricks);
+  const [bricks, setBricks] = useState(createBricks());
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [hasStarted, setHasStarted] = useState(false);
@@ -117,7 +117,7 @@ const BreakoutGame = () => {
           if (hit) {
             setBallDY((prev) => -prev); // Basic collision
             setScore((prev) => prev + 10);
-            return { ...brick, status: 0 };
+            return { ...brick, status: 0 as 0 | 1 };
           }
           bricksLeft++;
         }
