@@ -30,8 +30,10 @@ export default function SnakeGame() {
   const [food, setFood] = useState<Point>(() =>
     generateFood([{ x: 10, y: 10 }])
   );
+  const [bomb, setBomb] = useState<Point | null>(null);
   const [direction, setDirection] = useState<Point>({ x: 0, y: -1 });
   const [isGameOver, setIsGameOver] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const [score, setScore] = useState(0);
 
   // --- Refs ---
@@ -49,6 +51,8 @@ export default function SnakeGame() {
     setDirection({ x: 0, y: -1 });
     setScore(0);
     setIsGameOver(false);
+    setHasStarted(true);
+    setBomb(null);
   };
 
   // --- Keyboard Controls ---
@@ -58,6 +62,10 @@ export default function SnakeGame() {
 
       const key = e.key.toUpperCase();
       const { x, y } = directionRef.current;
+
+      if (["ARROWUP", "ARROWDOWN", "ARROWLEFT", "ARROWRIGHT"].includes(key)) {
+        e.preventDefault();
+      }
 
       if ((key === "W" || key === "ARROWUP") && y === 0) {
         setDirection({ x: 0, y: -1 });
@@ -98,7 +106,7 @@ export default function SnakeGame() {
 
   // --- Game Loop ---
   useEffect(() => {
-    if (isGameOver) return;
+    if (!hasStarted || isGameOver) return;
 
     const gameLoop = () => {
       directionChangedRef.current = false;
@@ -130,9 +138,30 @@ export default function SnakeGame() {
         // Eat food
         if (newHead.x === food.x && newHead.y === food.y) {
           setScore((s) => s + 10);
-          setFood(generateFood(newSnake));
+          const newFood = generateFood(newSnake);
+          setFood(newFood);
+          if (Math.random() < 0.4) {
+            let newBomb: Point;
+            do {
+              newBomb = {
+                x: Math.floor(Math.random() * GRID_SIZE),
+                y: Math.floor(Math.random() * GRID_SIZE),
+              };
+            } while (
+              newSnake.some((s) => s.x === newBomb.x && s.y === newBomb.y) ||
+              (newBomb.x === food.x && newBomb.y === food.y)
+            );
+            setBomb(newBomb);
+          } else {
+            setBomb(null); // clear the previous bomb if any
+          }
         } else {
           newSnake.pop();
+        }
+
+        if (bomb && newHead.x === bomb.x && newHead.y === bomb.y) {
+          setIsGameOver(true);
+          return prev;
         }
 
         return newSnake;
@@ -141,7 +170,7 @@ export default function SnakeGame() {
 
     const intervalId = setInterval(gameLoop, GAME_SPEED);
     return () => clearInterval(intervalId);
-  }, [isGameOver, food]);
+  }, [isGameOver, food, hasStarted]);
 
   // --- Drawing ---
   useEffect(() => {
@@ -160,7 +189,49 @@ export default function SnakeGame() {
     // Draw food
     ctx.fillStyle = "#ef4444";
     ctx.fillRect(food.x * TILE_SIZE, food.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-  }, [snake, food]);
+
+    if (bomb) {
+      const centerX = bomb.x * TILE_SIZE + TILE_SIZE / 2;
+      const centerY = bomb.y * TILE_SIZE + TILE_SIZE / 2;
+      const radius = TILE_SIZE / 2;
+
+      const gradient = ctx.createRadialGradient(
+        centerX - radius / 3,
+        centerY - radius / 3,
+        0,
+        centerX,
+        centerY,
+        radius
+      );
+      gradient.addColorStop(0, "#333333");
+      gradient.addColorStop(0.7, "#1a1a1a");
+      gradient.addColorStop(1, "#000000");
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.fill();
+
+      ctx.fillStyle = "#555555";
+      ctx.beginPath();
+      ctx.arc(
+        centerX - radius / 4,
+        centerY - radius / 4,
+        radius / 4,
+        0,
+        2 * Math.PI
+      );
+      ctx.fill();
+
+      ctx.fillStyle = "#8B4513";
+      ctx.fillRect(centerX - 2, centerY - radius - 3, 4, 3);
+
+      ctx.fillStyle = "#FFFF00";
+      ctx.font = `${TILE_SIZE / 4}px Arial`;
+      ctx.textAlign = "center";
+      ctx.fillText("⚠", centerX, centerY + 3);
+    }
+  }, [snake, food, bomb]);
 
   // --- Auto-scroll into view on load ---
   useEffect(() => {
@@ -179,6 +250,20 @@ export default function SnakeGame() {
       </p>
 
       <div className="relative rounded-lg overflow-hidden shadow-lg">
+        {!hasStarted && (
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col justify-center items-center rounded-lg z-10">
+            <p className="text-4xl font-extrabold text-white drop-shadow-lg">
+              🎮 Snake Game
+            </p>
+            <button
+              onClick={() => setHasStarted(true)}
+              className="mt-6 px-6 py-2 bg-gradient-to-r from-green-500 to-lime-500 hover:from-green-600 hover:to-lime-600 text-white font-bold rounded-full transition shadow-md"
+            >
+              ▶️ Start
+            </button>
+          </div>
+        )}
+
         <canvas
           ref={canvasRef}
           width={CANVAS_SIZE}
