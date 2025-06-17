@@ -17,57 +17,37 @@ const BRICK_PADDING = 10;
 const BRICK_OFFSET_TOP = 30;
 const BRICK_OFFSET_LEFT = 30;
 
-// --- State and Types ---
+// --- Types ---
 type Brick = { x: number; y: number; status: 1 | 0 };
 type Pattern = "pyramid" | "wall" | "checkerboard" | "spaced";
 
+// --- Brick Generator ---
 const createBricks = (): Brick[][] => {
-  const patterns: Pattern[] = ["pyramid", "wall", "checkerboard", "spaced"];
-  // Randomly select a pattern
-  const selectedPattern = patterns[Math.floor(Math.random() * patterns.length)];
+  const pattern: Pattern = ["pyramid", "wall", "checkerboard", "spaced"][
+    Math.floor(Math.random() * 4)
+  ];
 
-  const newBricks: Brick[][] = [];
-  for (let c = 0; c < BRICK_COLUMN_COUNT; c++) {
-    newBricks[c] = [];
-    for (let r = 0; r < BRICK_ROW_COUNT; r++) {
-      let status: 1 | 0 = 0; // Default to no brick
+  return Array.from({ length: BRICK_COLUMN_COUNT }, (_, c) =>
+    Array.from({ length: BRICK_ROW_COUNT }, (_, r) => {
+      let status: 1 | 0 = 0;
 
-      // --- PATTERN LOGIC ---
-      switch (selectedPattern) {
-        case "wall":
-          status = 1; // Solid wall, every brick is active
-          break;
-
-        case "checkerboard":
-          // Active if the sum of row and column is even
-          if ((c + r) % 2 === 0) {
-            status = 1;
-          }
-          break;
-
-        case "pyramid":
-          // Creates a pyramid shape
-          const pyramidCenter = Math.floor(BRICK_COLUMN_COUNT / 2);
-          if (c >= pyramidCenter - r && c <= pyramidCenter + r) {
-            status = 1;
-          }
-          break;
-
-        case "spaced":
-          // Creates columns with spaces between them
-          if (c % 2 === 0) {
-            status = 1;
-          }
-          break;
+      if (
+        pattern === "wall" ||
+        (pattern === "checkerboard" && (c + r) % 2 === 0) ||
+        (pattern === "pyramid" &&
+          c >= Math.floor(BRICK_COLUMN_COUNT / 2) - r &&
+          c <= Math.floor(BRICK_COLUMN_COUNT / 2) + r) ||
+        (pattern === "spaced" && c % 2 === 0)
+      ) {
+        status = 1;
       }
 
-      newBricks[c][r] = { x: 0, y: 0, status: status };
-    }
-  }
-  return newBricks;
+      return { x: 0, y: 0, status };
+    })
+  );
 };
 
-// --- The Game Component ---
+// --- Main Game Component ---
 const BreakoutGame = () => {
   const { data: session } = useSession();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -86,53 +66,38 @@ const BreakoutGame = () => {
   const [isGameOver, setIsGameOver] = useState(false);
   const [isWin, setIsWin] = useState(false);
   const [level, setLevel] = useState(1);
+  const [fps, setFps] = useState(0);
 
-  // --- Game Logic ---
+  // --- Ball & Collision Logic ---
   const runGameLogic = useCallback(() => {
-    // Ball Movement
     let nextBallX = ballX + ballDX;
     let nextBallY = ballY + ballDY;
 
-    // Wall collision (left/right)
-    if (nextBallX > CANVAS_WIDTH - BALL_RADIUS || nextBallX < BALL_RADIUS) {
+    if (nextBallX < BALL_RADIUS || nextBallX > CANVAS_WIDTH - BALL_RADIUS) {
       setBallDX((prev) => -prev);
     }
-
-    // Wall collision (top)
     if (nextBallY < BALL_RADIUS) {
       setBallDY((prev) => -prev);
-    }
-    // Paddle & Bottom Wall Collision
-    else if (nextBallY > CANVAS_HEIGHT - BALL_RADIUS) {
+    } else if (nextBallY > CANVAS_HEIGHT - BALL_RADIUS) {
       if (
         nextBallY + BALL_RADIUS >= CANVAS_HEIGHT - PADDLE_HEIGHT &&
         nextBallX > paddleX &&
         nextBallX < paddleX + PADDLE_WIDTH
       ) {
-        // Calculate hit position on paddle (-1 to 1)
         const relativeIntersectX = nextBallX - (paddleX + PADDLE_WIDTH / 2);
-        const normalized = relativeIntersectX / (PADDLE_WIDTH / 2); // -1 (left) to 1 (right)
-
-        // Max bounce angle: 60 degrees (π/3 radians)
-        const maxBounceAngle = Math.PI / 3;
-        const bounceAngle = normalized * maxBounceAngle;
-
-        const speed = Math.sqrt(ballDX ** 2 + ballDY ** 2);
+        const normalized = relativeIntersectX / (PADDLE_WIDTH / 2);
+        const bounceAngle = normalized * (Math.PI / 3);
+        const speed = Math.hypot(ballDX, ballDY);
 
         setBallDX(speed * Math.sin(bounceAngle));
-        setBallDY(-Math.abs(speed * Math.cos(bounceAngle))); // Always upward
+        setBallDY(-Math.abs(speed * Math.cos(bounceAngle)));
       } else {
         setLives((prev) => {
           if (prev - 1 <= 0) {
             setIsGameOver(true);
             return 0;
           }
-          // Reset ball for next life
-          setBallX(CANVAS_WIDTH / 2);
-          setBallY(CANVAS_HEIGHT - 30);
-          setPaddleX((CANVAS_WIDTH - PADDLE_WIDTH) / 2);
-          setBallDX(INITIAL_BALL_SPEED);
-          setBallDY(-INITIAL_BALL_SPEED);
+          resetBall();
           return prev - 1;
         });
       }
@@ -140,8 +105,8 @@ const BreakoutGame = () => {
 
     // Brick Collision
     let bricksLeft = 0;
-    const newBricks = bricks.map((column) =>
-      column.map((brick) => {
+    const newBricks = bricks.map((col, c) =>
+      col.map((brick, r) => {
         if (brick.status === 1) {
           const hit =
             nextBallX + BALL_RADIUS > brick.x &&
@@ -150,132 +115,87 @@ const BreakoutGame = () => {
             nextBallY - BALL_RADIUS < brick.y + BRICK_HEIGHT;
 
           if (hit) {
-            const prevBallX = ballX;
-            const prevBallY = ballY;
-
-            const hitFromLeft = prevBallX + BALL_RADIUS <= brick.x;
-            const hitFromRight =
-              prevBallX - BALL_RADIUS >= brick.x + BRICK_WIDTH;
-            const hitFromTop = prevBallY + BALL_RADIUS <= brick.y;
-            const hitFromBottom =
-              prevBallY - BALL_RADIUS >= brick.y + BRICK_HEIGHT;
-
-            // Determine collision side and invert direction accordingly
-            if (hitFromLeft || hitFromRight) {
-              setBallDX((prev) => -prev);
-            } else if (hitFromTop || hitFromBottom) {
-              setBallDY((prev) => -prev);
-            } else {
-              setBallDY((prev) => -prev); // fallback
-            }
-
+            setBallDY((prev) => -prev); // Basic collision
             setScore((prev) => prev + 10);
-            return { ...brick, status: 0 as const };
+            return { ...brick, status: 0 };
           }
-
           bricksLeft++;
         }
         return brick;
       })
     );
+
     setBricks(newBricks);
     if (bricksLeft === 0) {
-      setLevel((prev) => prev + 1); // Increase level
-      setBricks(createBricks()); // New pattern
-      setBallX(CANVAS_WIDTH / 2);
-      setBallY(CANVAS_HEIGHT - 30);
-      setPaddleX((CANVAS_WIDTH - PADDLE_WIDTH) / 2);
-
-      // Optional: increase ball speed slightly each level
-      const speedMultiplier = 1.1;
-      setBallDX((prev) => prev * speedMultiplier);
-      setBallDY((prev) => -Math.abs(prev * speedMultiplier));
-
-      return; // Don't proceed with normal update in same frame
+      setLevel((prev) => prev + 1);
+      setBricks(createBricks());
+      resetBall(true);
+      return;
     }
 
-    // Update ball position
     setBallX((prev) => prev + ballDX);
     setBallY((prev) => prev + ballDY);
-  }, [ballX, ballY, ballDX, ballDY, paddleX, bricks, isGameOver]);
+  }, [ballX, ballY, ballDX, ballDY, paddleX, bricks]);
 
-  // --- Main Game Loop using requestAnimationFrame ---
+  const resetBall = (speedUp = false) => {
+    setBallX(CANVAS_WIDTH / 2);
+    setBallY(CANVAS_HEIGHT - 30);
+    setPaddleX((CANVAS_WIDTH - PADDLE_WIDTH) / 2);
+    setBallDX((prev) => (speedUp ? prev * 1.1 : INITIAL_BALL_SPEED));
+    setBallDY((prev) => (speedUp ? -Math.abs(prev * 1.1) : -INITIAL_BALL_SPEED));
+  };
+
+  // --- Game Loop ---
   useEffect(() => {
     const context = canvasRef.current?.getContext("2d");
     if (!context || !hasStarted || isGameOver) return;
 
-    const gameLoop = () => {
-      // 1. Run the physics/game logic
+    const loop = () => {
       runGameLogic();
-
-      // 2. Clear the canvas
       context.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // 3. Draw everything
       // Draw Bricks
-      bricks.forEach((column, c) => {
-        column.forEach((brick, r) => {
+      bricks.forEach((col, c) =>
+        col.forEach((brick, r) => {
           if (brick.status === 1) {
-            // If brick x/y hasn't been calculated, do it once
-            const brickX =
-              brick.x || c * (BRICK_WIDTH + BRICK_PADDING) + BRICK_OFFSET_LEFT;
-            const brickY =
-              brick.y || r * (BRICK_HEIGHT + BRICK_PADDING) + BRICK_OFFSET_TOP;
-            // Store it back for future frames (optional optimization)
-            bricks[c][r].x = brickX;
-            bricks[c][r].y = brickY;
+            brick.x ||= c * (BRICK_WIDTH + BRICK_PADDING) + BRICK_OFFSET_LEFT;
+            brick.y ||= r * (BRICK_HEIGHT + BRICK_PADDING) + BRICK_OFFSET_TOP;
 
-            context.beginPath();
-            context.rect(brickX, brickY, BRICK_WIDTH, BRICK_HEIGHT);
             const gradient = context.createRadialGradient(
-              brickX + BRICK_WIDTH / 2, // center x
-              brickY + BRICK_HEIGHT / 2, // center y
-              5, // inner radius
-              brickX + BRICK_WIDTH / 2,
-              brickY + BRICK_HEIGHT / 2,
-              BRICK_WIDTH // outer radius
+              brick.x + BRICK_WIDTH / 2,
+              brick.y + BRICK_HEIGHT / 2,
+              5,
+              brick.x + BRICK_WIDTH / 2,
+              brick.y + BRICK_HEIGHT / 2,
+              BRICK_WIDTH
             );
 
-            // Define gradient color stops
-            gradient.addColorStop(0, "#a855f7"); // light center
-            gradient.addColorStop(1, "#6d28d9"); // darker edge
+            gradient.addColorStop(0, "#a855f7");
+            gradient.addColorStop(1, "#6d28d9");
 
             context.fillStyle = gradient;
-            context.fill();
-            context.closePath();
+            context.fillRect(brick.x, brick.y, BRICK_WIDTH, BRICK_HEIGHT);
           }
-        });
-      });
-
-      // Draw Paddle
-      context.beginPath();
-      context.rect(
-        paddleX,
-        CANVAS_HEIGHT - PADDLE_HEIGHT,
-        PADDLE_WIDTH,
-        PADDLE_HEIGHT
+        })
       );
+
+      // Paddle
       context.fillStyle = "#a855f7";
-      context.fill();
-      context.closePath();
-      // Draw Ball
+      context.fillRect(paddleX, CANVAS_HEIGHT - PADDLE_HEIGHT, PADDLE_WIDTH, PADDLE_HEIGHT);
+
+      // Ball
       context.beginPath();
       context.arc(ballX, ballY, BALL_RADIUS, 0, Math.PI * 2);
       context.fillStyle = "#f87171";
       context.fill();
       context.closePath();
 
-      // 4. Request the next frame
-      animationFrameId.current = requestAnimationFrame(gameLoop);
+      animationFrameId.current = requestAnimationFrame(loop);
     };
 
-    // Start the loop
-    animationFrameId.current = requestAnimationFrame(gameLoop);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId.current!);
-    };
-  }, [runGameLogic, isGameOver, hasStarted]); // The loop now only depends on the logic function and the game over state
+    animationFrameId.current = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animationFrameId.current!);
+  }, [runGameLogic, isGameOver, hasStarted]);
 
   // --- Mouse Controls ---
   useEffect(() => {
@@ -283,43 +203,43 @@ const BreakoutGame = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const relativeX = e.clientX - canvas.getBoundingClientRect().left;
-      let newPaddleX = relativeX - PADDLE_WIDTH / 2;
-      if (newPaddleX < 0) newPaddleX = 0;
-      if (newPaddleX + PADDLE_WIDTH > CANVAS_WIDTH)
-        newPaddleX = CANVAS_WIDTH - PADDLE_WIDTH;
-      setPaddleX(newPaddleX);
+      let newX = relativeX - PADDLE_WIDTH / 2;
+      if (newX < 0) newX = 0;
+      if (newX + PADDLE_WIDTH > CANVAS_WIDTH) newX = CANVAS_WIDTH - PADDLE_WIDTH;
+      setPaddleX(newX);
     };
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
-  // --- Score Submission `useEffect` ---
+  // --- Score Submission ---
   useEffect(() => {
-    // Run this effect when the game is over
     if (isGameOver && session?.user?.id) {
-      const submitScore = async () => {
-        // No need to check for score > 0, as you can win with 0 score (if there were no bricks)
-        console.log(`Game over! Submitting score: ${score}`);
-        try {
-          await fetch("/api/scores", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              userId: session.user.id,
-              gameSlug: "breakout",
-              score: score,
-            }),
-          });
-          console.log("Breakout score submitted!");
-        } catch (error) {
-          console.error("Error submitting Breakout score:", error);
-        }
-      };
-      submitScore();
+      fetch("/api/scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: session.user.id, gameSlug: "breakout", score }),
+      }).catch((e) => console.error("Score submit failed", e));
     }
   }, [isGameOver, score, session]);
 
-  // **FIX #3: CENTER THE CANVAS ON LOAD**
+  // --- FPS Counter ---
+  useEffect(() => {
+    let last = performance.now();
+    let frames = 0;
+    const loop = () => {
+      const now = performance.now();
+      frames++;
+      if (now - last >= 1000) {
+        setFps(frames);
+        frames = 0;
+        last = now;
+      }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }, []);
+
   useEffect(() => {
     canvasRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
@@ -327,45 +247,48 @@ const BreakoutGame = () => {
   const restartGame = () => {
     setIsGameOver(false);
     setIsWin(false);
-    setBallX(CANVAS_WIDTH / 2);
-    setBallY(CANVAS_HEIGHT - 30);
-    setPaddleX((CANVAS_WIDTH - PADDLE_WIDTH) / 2);
+    resetBall();
     setScore(0);
     setLives(3);
-    setLevel(1); 
+    setLevel(1);
     setBricks(createBricks());
   };
 
+  // --- UI ---
   return (
     <div className="flex flex-col items-center">
       <h2 className="text-2xl font-bold mb-2 text-gray-800 dark:text-gray-100">
         Breakout
       </h2>
+
       <div
         className="flex justify-between w-full px-4 py-2 rounded-md bg-white/10 backdrop-blur-sm shadow-md mb-2"
         style={{ maxWidth: `${CANVAS_WIDTH}px` }}
       >
-        <p className="text-primary text-lg font-semibold">🎯 Score: {score}</p>
-        <p className="text-yellow-400 text-lg font-semibold">
-          🧱 Level: {level}
-        </p>
-        <p className="text-red-500 text-lg font-semibold">❤️ Lives: {lives}</p>
+        <p className="text-primary font-semibold">🎯 Score: {score}</p>
+        <p className="text-yellow-400 font-semibold">🧱 Level: {level}</p>
+        <p className="text-red-500 font-semibold">❤️ Lives: {lives}</p>
+        <p className="text-blue-400 font-semibold">📈 FPS: {fps}</p>
       </div>
 
       <div className="relative mt-4">
         {!hasStarted && (
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col justify-center items-center rounded-lg z-10">
-            <p className="text-4xl font-extrabold text-white drop-shadow-lg">
-              🎮 Breakout
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg z-10 px-6">
+            <p className="text-3xl font-extrabold text-white">🎮 Breakout</p>
+            <p className="text-sm text-gray-200 mt-2 mb-4 text-center">
+              For best experience, please limit your browser FPS to 60 before starting.
+              <br />
+              (Check your graphics settings, especially on gaming laptops.)
             </p>
             <button
               onClick={() => setHasStarted(true)}
-              className="mt-6 px-6 py-2 bg-gradient-to-r from-green-500 to-lime-500 hover:from-green-600 hover:to-lime-600 text-white font-bold rounded-full transition shadow-md"
+              className="px-6 py-2 bg-gradient-to-r from-green-500 to-lime-500 hover:brightness-110 text-white font-bold rounded-full transition shadow-md"
             >
               ▶️ Start
             </button>
           </div>
         )}
+
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
@@ -374,13 +297,13 @@ const BreakoutGame = () => {
         />
 
         {isGameOver && (
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col justify-center items-center rounded-lg">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg z-10">
             <p className="text-4xl font-extrabold text-white drop-shadow-lg">
               {isWin ? "🎉 You Win!" : "💥 Game Over"}
             </p>
             <button
               onClick={restartGame}
-              className="mt-4 px-6 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold rounded-full transition shadow-lg"
+              className="mt-4 px-6 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:brightness-110 text-white font-bold rounded-full transition shadow-lg"
             >
               🔁 Play Again
             </button>
