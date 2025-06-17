@@ -23,9 +23,9 @@ type Pattern = "pyramid" | "wall" | "checkerboard" | "spaced";
 
 // --- Brick Generator ---
 const createBricks = (): Brick[][] => {
-  const pattern = (["pyramid", "wall", "checkerboard", "spaced"][
+  const pattern = ["pyramid", "wall", "checkerboard", "spaced"][
     Math.floor(Math.random() * 4)
-  ]) as Pattern;
+  ] as Pattern;
 
   return Array.from({ length: BRICK_COLUMN_COUNT }, (_, c) =>
     Array.from({ length: BRICK_ROW_COUNT }, (_, r) => {
@@ -59,6 +59,8 @@ const BreakoutGame = () => {
   const [ballY, setBallY] = useState(CANVAS_HEIGHT - 30);
   const [ballDX, setBallDX] = useState(INITIAL_BALL_SPEED);
   const [ballDY, setBallDY] = useState(-INITIAL_BALL_SPEED);
+  const [ballSpeed, setBallSpeed] = useState(INITIAL_BALL_SPEED);
+
   const [bricks, setBricks] = useState(createBricks());
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -138,11 +140,14 @@ const BreakoutGame = () => {
   }, [ballX, ballY, ballDX, ballDY, paddleX, bricks]);
 
   const resetBall = (speedUp = false) => {
+    const newSpeed = speedUp ? ballSpeed * 1.25 : ballSpeed;
+    setBallSpeed(newSpeed); // Save new speed for next time
     setBallX(CANVAS_WIDTH / 2);
     setBallY(CANVAS_HEIGHT - 30);
     setPaddleX((CANVAS_WIDTH - PADDLE_WIDTH) / 2);
-    setBallDX((prev) => (speedUp ? prev * 1.1 : INITIAL_BALL_SPEED));
-    setBallDY((prev) => (speedUp ? -Math.abs(prev * 1.1) : -INITIAL_BALL_SPEED));
+    const angle = Math.atan2(ballDY, ballDX); // keep angle
+    setBallDX(newSpeed * Math.cos(angle));
+    setBallDY(-Math.abs(newSpeed * Math.sin(angle))); // ensure it goes upward
   };
 
   // --- Game Loop ---
@@ -181,7 +186,12 @@ const BreakoutGame = () => {
 
       // Paddle
       context.fillStyle = "#a855f7";
-      context.fillRect(paddleX, CANVAS_HEIGHT - PADDLE_HEIGHT, PADDLE_WIDTH, PADDLE_HEIGHT);
+      context.fillRect(
+        paddleX,
+        CANVAS_HEIGHT - PADDLE_HEIGHT,
+        PADDLE_WIDTH,
+        PADDLE_HEIGHT
+      );
 
       // Ball
       context.beginPath();
@@ -205,7 +215,8 @@ const BreakoutGame = () => {
       const relativeX = e.clientX - canvas.getBoundingClientRect().left;
       let newX = relativeX - PADDLE_WIDTH / 2;
       if (newX < 0) newX = 0;
-      if (newX + PADDLE_WIDTH > CANVAS_WIDTH) newX = CANVAS_WIDTH - PADDLE_WIDTH;
+      if (newX + PADDLE_WIDTH > CANVAS_WIDTH)
+        newX = CANVAS_WIDTH - PADDLE_WIDTH;
       setPaddleX(newX);
     };
     window.addEventListener("mousemove", handleMouseMove);
@@ -218,7 +229,11 @@ const BreakoutGame = () => {
       fetch("/api/scores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: session.user.id, gameSlug: "breakout", score }),
+        body: JSON.stringify({
+          userId: session.user.id,
+          gameSlug: "breakout",
+          score,
+        }),
       }).catch((e) => console.error("Score submit failed", e));
     }
   }, [isGameOver, score, session]);
@@ -247,6 +262,7 @@ const BreakoutGame = () => {
   const restartGame = () => {
     setIsGameOver(false);
     setIsWin(false);
+    setBallSpeed(INITIAL_BALL_SPEED); 
     resetBall();
     setScore(0);
     setLives(3);
@@ -269,6 +285,8 @@ const BreakoutGame = () => {
         <p className="text-yellow-400 font-semibold">🧱 Level: {level}</p>
         <p className="text-red-500 font-semibold">❤️ Lives: {lives}</p>
         <p className="text-blue-400 font-semibold">📈 FPS: {fps}</p>
+        <p className="text-purple-300 font-semibold">⚡ Speed: {ballSpeed.toFixed(2)}</p>
+
       </div>
 
       <div className="relative mt-4">
@@ -276,7 +294,8 @@ const BreakoutGame = () => {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg z-10 px-6">
             <p className="text-3xl font-extrabold text-white">🎮 Breakout</p>
             <p className="text-sm text-gray-200 mt-2 mb-4 text-center">
-              For best experience, please limit your browser FPS to 60 before starting.
+              For best experience, please limit your browser FPS to 60 before
+              starting.
               <br />
               (Check your graphics settings, especially on gaming laptops.)
             </p>
