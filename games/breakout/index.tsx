@@ -82,8 +82,10 @@ const BreakoutGame = () => {
   const [bricks, setBricks] = useState(createBricks);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
+  const [hasStarted, setHasStarted] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [isWin, setIsWin] = useState(false);
+  const [level, setLevel] = useState(1);
 
   // --- Game Logic ---
   const runGameLogic = useCallback(() => {
@@ -102,8 +104,23 @@ const BreakoutGame = () => {
     }
     // Paddle & Bottom Wall Collision
     else if (nextBallY > CANVAS_HEIGHT - BALL_RADIUS) {
-      if (nextBallX > paddleX && nextBallX < paddleX + PADDLE_WIDTH) {
-        setBallDY((prev) => -prev);
+      if (
+        nextBallY + BALL_RADIUS >= CANVAS_HEIGHT - PADDLE_HEIGHT &&
+        nextBallX > paddleX &&
+        nextBallX < paddleX + PADDLE_WIDTH
+      ) {
+        // Calculate hit position on paddle (-1 to 1)
+        const relativeIntersectX = nextBallX - (paddleX + PADDLE_WIDTH / 2);
+        const normalized = relativeIntersectX / (PADDLE_WIDTH / 2); // -1 (left) to 1 (right)
+
+        // Max bounce angle: 60 degrees (π/3 radians)
+        const maxBounceAngle = Math.PI / 3;
+        const bounceAngle = normalized * maxBounceAngle;
+
+        const speed = Math.sqrt(ballDX ** 2 + ballDY ** 2);
+
+        setBallDX(speed * Math.sin(bounceAngle));
+        setBallDY(-Math.abs(speed * Math.cos(bounceAngle))); // Always upward
       } else {
         setLives((prev) => {
           if (prev - 1 <= 0) {
@@ -126,25 +143,55 @@ const BreakoutGame = () => {
     const newBricks = bricks.map((column) =>
       column.map((brick) => {
         if (brick.status === 1) {
-          if (
-            nextBallX > brick.x &&
-            nextBallX < brick.x + BRICK_WIDTH &&
-            nextBallY > brick.y &&
-            nextBallY < brick.y + BRICK_HEIGHT
-          ) {
-            setBallDY((prev) => -prev);
+          const hit =
+            nextBallX + BALL_RADIUS > brick.x &&
+            nextBallX - BALL_RADIUS < brick.x + BRICK_WIDTH &&
+            nextBallY + BALL_RADIUS > brick.y &&
+            nextBallY - BALL_RADIUS < brick.y + BRICK_HEIGHT;
+
+          if (hit) {
+            const prevBallX = ballX;
+            const prevBallY = ballY;
+
+            const hitFromLeft = prevBallX + BALL_RADIUS <= brick.x;
+            const hitFromRight =
+              prevBallX - BALL_RADIUS >= brick.x + BRICK_WIDTH;
+            const hitFromTop = prevBallY + BALL_RADIUS <= brick.y;
+            const hitFromBottom =
+              prevBallY - BALL_RADIUS >= brick.y + BRICK_HEIGHT;
+
+            // Determine collision side and invert direction accordingly
+            if (hitFromLeft || hitFromRight) {
+              setBallDX((prev) => -prev);
+            } else if (hitFromTop || hitFromBottom) {
+              setBallDY((prev) => -prev);
+            } else {
+              setBallDY((prev) => -prev); // fallback
+            }
+
             setScore((prev) => prev + 10);
             return { ...brick, status: 0 as const };
           }
+
           bricksLeft++;
         }
         return brick;
       })
     );
     setBricks(newBricks);
-    if (bricksLeft === 0 && !isGameOver) {
-      setIsWin(true);
-      setIsGameOver(true);
+    if (bricksLeft === 0) {
+      setLevel((prev) => prev + 1); // Increase level
+      setBricks(createBricks()); // New pattern
+      setBallX(CANVAS_WIDTH / 2);
+      setBallY(CANVAS_HEIGHT - 30);
+      setPaddleX((CANVAS_WIDTH - PADDLE_WIDTH) / 2);
+
+      // Optional: increase ball speed slightly each level
+      const speedMultiplier = 1.1;
+      setBallDX((prev) => prev * speedMultiplier);
+      setBallDY((prev) => -Math.abs(prev * speedMultiplier));
+
+      return; // Don't proceed with normal update in same frame
     }
 
     // Update ball position
@@ -155,7 +202,7 @@ const BreakoutGame = () => {
   // --- Main Game Loop using requestAnimationFrame ---
   useEffect(() => {
     const context = canvasRef.current?.getContext("2d");
-    if (!context || isGameOver) return;
+    if (!context || !hasStarted || isGameOver) return;
 
     const gameLoop = () => {
       // 1. Run the physics/game logic
@@ -228,7 +275,7 @@ const BreakoutGame = () => {
     return () => {
       cancelAnimationFrame(animationFrameId.current!);
     };
-  }, [runGameLogic, isGameOver]); // The loop now only depends on the logic function and the game over state
+  }, [runGameLogic, isGameOver, hasStarted]); // The loop now only depends on the logic function and the game over state
 
   // --- Mouse Controls ---
   useEffect(() => {
@@ -285,6 +332,7 @@ const BreakoutGame = () => {
     setPaddleX((CANVAS_WIDTH - PADDLE_WIDTH) / 2);
     setScore(0);
     setLives(3);
+    setLevel(1); 
     setBricks(createBricks());
   };
 
@@ -298,10 +346,26 @@ const BreakoutGame = () => {
         style={{ maxWidth: `${CANVAS_WIDTH}px` }}
       >
         <p className="text-primary text-lg font-semibold">🎯 Score: {score}</p>
+        <p className="text-yellow-400 text-lg font-semibold">
+          🧱 Level: {level}
+        </p>
         <p className="text-red-500 text-lg font-semibold">❤️ Lives: {lives}</p>
       </div>
 
       <div className="relative mt-4">
+        {!hasStarted && (
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col justify-center items-center rounded-lg z-10">
+            <p className="text-4xl font-extrabold text-white drop-shadow-lg">
+              🎮 Breakout
+            </p>
+            <button
+              onClick={() => setHasStarted(true)}
+              className="mt-6 px-6 py-2 bg-gradient-to-r from-green-500 to-lime-500 hover:from-green-600 hover:to-lime-600 text-white font-bold rounded-full transition shadow-md"
+            >
+              ▶️ Start
+            </button>
+          </div>
+        )}
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
