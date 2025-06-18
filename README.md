@@ -1,40 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# Mini Game Site 🎮
 
-## Getting Started
+A modern web-based gaming platform built with Next.js, featuring classic arcade games reimagined with modern web technologies.
 
-First, run the development server:
+## 🎯 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Multiple Classic Games:**
+  - Snake: Navigate and grow while collecting food
+  - Tic-Tac-Toe: Strategic two-player classic
+  - Breakout: Bounce and break your way to victory
+
+- **Modern Technologies:**
+  - Built with Next.js 15 and React 19
+  - Responsive design using Tailwind CSS
+  - Dark mode support
+  - TypeScript for type safety
+
+- **User Features:**
+  - Authentication via NextAuth.js
+  - User profiles and scores
+  - Cross-platform compatibility
+  - Real-time game state management
+
+## 🚀 Quick Start
+
+1. **Clone and Install:**
+   ```bash
+   git clone https://github.com/Kaustubh0912/mini_game_site.git
+   cd mini_game_site
+   npm install
+   ```
+
+2. **Set up Environment:**
+   Create a `.env.local` file with necessary environment variables:
+   ```
+   NEXTAUTH_URL=http://localhost:3000
+   NEXTAUTH_SECRET=your_secret_key
+   MONGODB_URI=your_mongodb_uri
+   ```
+
+3. **Run Development Server:**
+   ```bash
+   npm run dev
+   ```
+
+4. **Open Browser:**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+## 🛠 Technology Stack
+
+- **Frontend:**
+  - Next.js 15.3.3
+  - React 19.0.0
+  - Tailwind CSS 3.4.3
+  - TypeScript 5
+
+- **Authentication:**
+  - NextAuth.js 4.24.11
+  - MongoDB Adapter
+
+- **Database:**
+  - MongoDB 5.9.2
+
+## 📦 Project Structure
+
+```
+mini_game_site/
+├── components/       # Reusable UI components
+├── games/           # Individual game implementations
+│   ├── breakout/
+│   ├── snake/
+│   └── tic-tac-toe/
+├── lib/             # Utility functions and helpers
+├── pages/           # Next.js pages and API routes
+├── public/          # Static assets
+├── styles/          # Global styles and Tailwind config
+└── types/           # TypeScript type definitions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🎮 Game Development
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+Each game is implemented as a standalone module in the `games` directory. Games use React hooks for state management and Canvas API for rendering where appropriate.
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+## 🔧 Configuration
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+- **Tailwind:** Customized theme with dark mode support
+- **Next.js:** Configured for image optimization and API routes
+- **TypeScript:** Strict mode enabled for better type safety
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚀 Deployment
 
-## Learn More
+Deployed on Vercel: [https://mini-game-site.vercel.app/](https://mini-game-site.vercel.app/)
 
-To learn more about Next.js, take a look at the following resources:
+## 🤝 Contributing
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/AmazingFeature`
+3. Commit your changes: `git commit -m 'Add AmazingFeature'`
+4. Push to the branch: `git push origin feature/AmazingFeature`
+5. Open a Pull Request
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📝 License
 
-## Deploy on Vercel
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🙏 Acknowledgments
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+- Next.js team for the amazing framework
+- Vercel for hosting solutions
+- All contributors and players
+
+---
+
+Built with ❤️ by [Your Name/Team Name]
