@@ -1,102 +1,176 @@
-// pages/games/[slug].tsx
-import { GetStaticPaths, GetStaticProps, InferGetStaticPropsType } from 'next';
-import { Game } from '@/lib/games'; // We can reuse our Game type
-import clientPromise from '@/lib/mongodb';
-import { ParsedUrlQuery } from 'querystring';
+import { GetStaticPaths, GetStaticProps } from "next";
+import { useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
+import { Game } from "@/lib/games";
+import dynamic from "next/dynamic";
+import clientPromise from "@/lib/mongodb";
 
-// Import game components
-import TicTacToeGame from '@/games/tic-tac-toe';
-import SnakeGame from '@/games/snake';
-import BreakoutGame from '@/games/breakout'; 
+// Define available games
+const AVAILABLE_GAMES = ["tic-tac-toe", "snake", "breakout"];
 
-import Link from 'next/link';
-// Import other games as you create them
-// import SnakeGame from '@/games/snake';
-
-// Game component registry
-const gameComponents: { [key: string]: React.ComponentType } = {
-  'tic-tac-toe': TicTacToeGame,
-  'snake': SnakeGame,
-  'breakout': BreakoutGame,
+// Dynamically import game components
+const gameComponents = {
+  "tic-tac-toe": dynamic(() => import("@/games/tic-tac-toe")),
+  snake: dynamic(() => import("@/games/snake")),
+  breakout: dynamic(() => import("@/games/breakout")),
 };
 
-// Define the shape of the context params for getStaticProps
-interface IParams extends ParsedUrlQuery {
-    slug: string;
-}
+// Types
+type GamePageProps = {
+  gameInfo: Game;
+};
 
-// 1. getStaticPaths: Tell Next.js which pages to build
+// Get static paths - this tells Next.js which pages to generate at build time
 export const getStaticPaths: GetStaticPaths = async () => {
-  const client = await clientPromise;
-  const db = client.db('miniGamesDB');
+  try {
+    const client = await clientPromise;
+    const db = client.db("miniGamesDB");
 
-  // Fetch all games, but we only need the 'slug' field
-  const games = await db.collection('games').find({}, { projection: { slug: 1, _id: 0 } }).toArray();
+    // Get all game slugs from the database
+    const games = await db
+      .collection("games")
+      .find({})
+      .project({ slug: 1, _id: 0 })
+      .toArray();
 
-  // Create an array of paths from the slugs
-  const paths = games.map((game) => ({
-    params: { slug: game.slug },
-  }));
+    // Create paths for each game
+    const paths = games.map((game) => ({
+      params: { slug: game.slug },
+    }));
 
-  return {
-    paths,
-    fallback: false, // If a slug is not found, show a 404 page
-  };
-};
-
-// 2. getStaticProps: Fetch data for a single page
-export const getStaticProps: GetStaticProps<{ gameInfo: Game }, IParams> = async (context) => {
-  const { slug } = context.params!; // The slug comes from the path
-  const client = await clientPromise;
-  const db = client.db('miniGamesDB');
-
-  // Find the one game that matches the slug
-  const gameInfo = await db.collection('games').findOne({ slug: slug });
-
-  if (!gameInfo) {
-    return { notFound: true }; // Return a 404 if no game is found
+    return {
+      paths,
+      fallback: false, // Return 404 if path is not found
+    };
+  } catch (error) {
+    console.error("Error getting static paths:", error);
+    // If there's an error, return just the known game paths
+    return {
+      paths: AVAILABLE_GAMES.map((slug) => ({ params: { slug } })),
+      fallback: false,
+    };
   }
-
-  // Convert the MongoDB document to a plain object
-  const serializedGameInfo = JSON.parse(JSON.stringify(gameInfo));
-  // Make sure to remove the complex _id object
-  delete serializedGameInfo._id;
-
-  return {
-    props: {
-      gameInfo: serializedGameInfo,
-    },
-    // Optional: revalidate the data every 60 seconds
-    // revalidate: 60,
-  };
 };
 
+// Get static props - this gets the data for each page
+export const getStaticProps: GetStaticProps<GamePageProps> = async ({
+  params,
+}) => {
+  try {
+    const client = await clientPromise;
+    const db = client.db("miniGamesDB");
 
-// 3. The Page Component: Receives the fetched data as props
-export default function GamePage({ gameInfo }: InferGetStaticPropsType<typeof getStaticProps>) {
-  const GameComponent = gameComponents[gameInfo.slug];
+    const gameSlug = params?.slug as string;
+
+    // Get game info from database
+    const gameInfo = await db
+      .collection("games")
+      .findOne({ slug: gameSlug }, { projection: { _id: 0 } });
+
+    // If game not found, return 404
+    if (!gameInfo) {
+      return {
+        notFound: true,
+      };
+    }
+
+    // Return the game info as props
+    return {
+      props: {
+        gameInfo: JSON.parse(JSON.stringify(gameInfo)),
+      },
+      revalidate: 60 * 60, // Revalidate every hour
+    };
+  } catch (error) {
+    console.error("Error getting static props:", error);
+    return {
+      notFound: true,
+    };
+  }
+};
+
+// Main component
+export default function GamePage({ gameInfo }: GamePageProps) {
+  const { data: session } = useSession();
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Get the game component
+  const GameComponent =
+    gameComponents[gameInfo.slug as keyof typeof gameComponents];
 
   return (
-    <div className="flex flex-col items-center">
-      <h1 className="text-4xl font-bold mb-2">{gameInfo.name}</h1>
-      <p className="text-lg text-gray-600 mb-6">{gameInfo.description}</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Game Header */}
+      <div className="flex flex-col md:flex-row gap-8 mb-8">
+        {/* Game Image */}
+        <div className="w-full md:w-1/3">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative aspect-video rounded-xl overflow-hidden shadow-xl"
+          >
+            <Image
+              src={gameInfo.image}
+              alt={gameInfo.name}
+              fill
+              className="object-cover"
+              priority
+            />
+          </motion.div>
+        </div>
 
-      <Link href={`/leaderboard/${gameInfo.slug}`} className="my-4 text-blue-600 hover:underline font-semibold">
-        🏆 View Leaderboard
-      </Link>
-      
-      <div className="w-full max-w-md flex justify-center">
+        {/* Game Info */}
+        <div className="w-full md:w-2/3">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h1 className="text-4xl font-bold mb-4">{gameInfo.name}</h1>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              {gameInfo.description}
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <button
+                onClick={() => setIsPlaying(true)}
+                className="px-6 py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary-dark transition-colors"
+              >
+                Play Now
+              </button>
+              <Link
+                href={`/leaderboard/${gameInfo.slug}`}
+                className="px-6 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-white rounded-full font-semibold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+              >
+                View Leaderboard
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Game Area */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6"
+      >
         {GameComponent ? (
           <GameComponent />
         ) : (
-          <div className="text-center p-10 bg-white rounded-lg shadow-md">
-            <h2 className="text-2xl font-semibold">Game Not Implemented</h2>
-            <p className="mt-2 text-gray-600">
-              The game logic for &quot;{gameInfo.name}&quot; has not been added yet.
+          <div className="text-center p-12">
+            <h2 className="text-2xl font-semibold mb-4">Game Not Available</h2>
+            <p className="text-gray-600 dark:text-gray-300">
+              This game is currently under maintenance. Please check back later.
             </p>
           </div>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
