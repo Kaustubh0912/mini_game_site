@@ -21,7 +21,7 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/line-clamp")],
   // This should already be here from the image fix
   images: {
     remotePatterns: [

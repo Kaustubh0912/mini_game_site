@@ -17,6 +17,11 @@
       "@/*": ["./*"]
     }
   },
+   "ts-node": {
+    "esm": true
+  },
+  
+
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "types"],
   "exclude": ["node_modules"]
 }
