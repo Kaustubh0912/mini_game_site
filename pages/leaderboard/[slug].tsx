@@ -1,129 +1,396 @@
-// pages/leaderboard/[slug].tsx
+"use client";
+
 import { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { FiClock, FiAward, FiArrowUp, FiArrowDown } from "react-icons/fi";
+import { FaTrophy } from "react-icons/fa";
 
-// Define the shape of a single score entry from our API
+// Types
 type Score = {
   name: string;
   image: string;
   score: number;
   timestamp: string;
+  rank?: number;
+  previousRank?: number;
+  userId: string;
 };
 
-// --- THIS IS THE CRITICAL DATA-FETCHING LOGIC ---
-// This runs on the server before rendering the page
+type TimeFrame = "all" | "daily" | "weekly" | "monthly";
+
+type LeaderboardStats = {
+  totalPlayers: number;
+  averageScore: number;
+  highestScore: number;
+};
+
+// Server-side props
 export const getServerSideProps: GetServerSideProps<{
   scores: Score[];
   gameSlug: string;
+  stats: LeaderboardStats;
 }> = async (context) => {
   const { slug } = context.params!;
 
-  // Build the absolute URL for the API endpoint
-  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
-  const host = context.req.headers.host;
-  const apiUrl = `${protocol}://${host}/api/scores/${slug}`;
-
   try {
+    // Build the absolute URL for the API endpoint
+    const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+    const host = context.req.headers.host;
+    const apiUrl = `${protocol}://${host}/api/scores/${slug}`;
+
     const res = await fetch(apiUrl);
     if (!res.ok) {
-      console.error(`API call failed with status: ${res.status}`);
-      return { props: { scores: [], gameSlug: slug as string } };
+      throw new Error(`API call failed with status: ${res.status}`);
     }
+
     const scores = await res.json();
-    return { props: { scores, gameSlug: slug as string } };
+
+    // Calculate stats
+    const stats = {
+      totalPlayers: scores.length,
+      averageScore: Math.round(
+        scores.reduce((acc: number, curr: Score) => acc + curr.score, 0) /
+          scores.length,
+      ),
+      highestScore: Math.max(...scores.map((s: Score) => s.score)),
+    };
+
+    return {
+      props: {
+        scores,
+        gameSlug: slug as string,
+        stats,
+      },
+    };
   } catch (error) {
     console.error("Failed to fetch leaderboard data:", error);
-    return { props: { scores: [], gameSlug: slug as string } };
+    return {
+      props: {
+        scores: [],
+        gameSlug: slug as string,
+        stats: {
+          totalPlayers: 0,
+          averageScore: 0,
+          highestScore: 0,
+        },
+      },
+    };
   }
 };
-// --- END OF DATA-FETCHING LOGIC ---
 
-// This is the page component with the new styling
 export default function LeaderboardPage({
-  scores,
+  scores: initialScores,
   gameSlug,
+  stats,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
-  return (
-    <div className="max-w-5xl mx-auto p-6 bg-gradient-to-br from-white to-gray-100 dark:from-slate-900 dark:to-slate-800 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700">
-      <h1 className="text-4xl md:text-5xl font-extrabold mb-8 text-center">
-        <span className="text-primary capitalize">
-          {gameSlug.replace("-", " ")}
-        </span>{" "}
-        <span className="text-gray-800 dark:text-white">Leaderboard</span>
-      </h1>
+  const { data: session } = useSession();
+  const [timeFrame, setTimeFrame] = useState<TimeFrame>("all");
+  const [scores, setScores] = useState(initialScores);
+  const [isLoading, setIsLoading] = useState(false);
 
-      <div className="rounded-lg overflow-hidden shadow-md bg-white/90 dark:bg-slate-800/70 backdrop-blur">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-          <thead className="bg-primary text-white">
-            <tr>
-              <th className="px-5 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                Rank
-              </th>
-              <th className="px-5 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                Player
-              </th>
-              <th className="px-5 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                Score
-              </th>
-              <th className="px-5 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                Date
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-            {scores && scores.length > 0 ? (
-              scores.map((entry, index) => (
-                <tr
-                  key={`${entry.name}-${index}`}
-                  className="hover:bg-primary/10 dark:hover:bg-primary/20 transition"
-                >
-                  <td className="px-5 py-4 font-bold text-lg text-gray-800 dark:text-white">
-                    {index + 1}
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center">
-                      <Image
-                        className="w-10 h-10 rounded-full"
-                        src={entry.image}
-                        alt={entry.name}
-                        width={40}
-                        height={40}
-                      />
-                      <p className="ml-3 font-semibold text-gray-800 dark:text-white">
-                        {entry.name}
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 font-semibold text-gray-800 dark:text-white">
-                    {entry.score}
-                  </td>
-                  <td className="px-5 py-4 text-sm text-gray-500 dark:text-slate-400">
-                    {new Date(entry.timestamp).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="text-center py-16 text-gray-500 dark:text-slate-400"
-                >
-                  No scores submitted yet. Be the first!
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+  // Find user's rank if they're logged in
+  const userScore = session?.user?.id
+    ? scores.find((score) => score.userId === session.user.id)
+    : null;
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  };
+
+  // Handle time frame change
+  const handleTimeFrameChange = async (newTimeFrame: TimeFrame) => {
+    setIsLoading(true);
+    setTimeFrame(newTimeFrame);
+
+    try {
+      const res = await fetch(
+        `/api/scores/${gameSlug}?timeFrame=${newTimeFrame}`,
+      );
+      const newScores = await res.json();
+      setScores(newScores);
+    } catch (error) {
+      console.error("Failed to fetch scores:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+      {/* Header */}
+      <div className="max-w-7xl mx-auto mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">
+              <span className="text-primary capitalize">
+                {gameSlug.replace(/-/g, " ")}
+              </span>{" "}
+              <span className="text-gray-900 dark:text-white">Leaderboard</span>
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300">
+              Compete with players worldwide and claim your spot at the top!
+            </p>
+          </div>
+          <Link
+            href={`/games/${gameSlug}`}
+            className="mt-4 md:mt-0 inline-flex items-center px-6 py-3 bg-primary text-white rounded-full hover:bg-primary-dark transition-colors"
+          >
+            Play Game
+          </Link>
+        </div>
       </div>
 
-      <div className="mt-8 text-center">
-        <Link
-          href={`/games/${gameSlug}`}
-          className="inline-block bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold py-3 px-6 rounded-full transition-shadow shadow-md"
+      {/* Stats Cards */}
+      <div className="max-w-7xl mx-auto mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg"
+          >
+            <div className="flex items-center">
+              <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
+                <FaTrophy className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Total Players
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {stats.totalPlayers.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg"
+          >
+            <div className="flex items-center">
+              <div className="p-3 bg-green-100 dark:bg-green-900 rounded-full">
+                <FiAward className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Average Score
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {stats.averageScore.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg"
+          >
+            <div className="flex items-center">
+              <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
+                <FiClock className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Highest Score
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {stats.highestScore.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Time Frame Filter */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-lg">
+          <div className="flex space-x-2">
+            {(["all", "daily", "weekly", "monthly"] as TimeFrame[]).map(
+              (tf) => (
+                <button
+                  key={tf}
+                  onClick={() => handleTimeFrameChange(tf)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    timeFrame === tf
+                      ? "bg-primary text-white"
+                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  {tf.charAt(0).toUpperCase() + tf.slice(1)}
+                </button>
+              ),
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Leaderboard Table */}
+      <div className="max-w-7xl mx-auto">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden"
         >
-          ‹ Back to Game
-        </Link>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+              <thead className="bg-gray-50 dark:bg-slate-700">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Rank
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Player
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Score
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Date
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                <AnimatePresence>
+                  {isLoading
+                    ? // Loading skeleton
+                      [...Array(10)].map((_, i) => (
+                        <motion.tr
+                          key={`skeleton-${i}`}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="animate-pulse"
+                        >
+                          <td className="px-6 py-4">
+                            <div className="h-4 w-8 bg-gray-200 dark:bg-slate-600 rounded" />
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="h-10 w-10 bg-gray-200 dark:bg-slate-600 rounded-full" />
+                              <div className="ml-4 h-4 w-24 bg-gray-200 dark:bg-slate-600 rounded" />
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="h-4 w-16 bg-gray-200 dark:bg-slate-600 rounded" />
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="h-4 w-24 bg-gray-200 dark:bg-slate-600 rounded" />
+                          </td>
+                        </motion.tr>
+                      ))
+                    : scores.map((score, index) => (
+                        <motion.tr
+                          key={`${score.userId}-${index}`}
+                          variants={itemVariants}
+                          className={`${
+                            session?.user?.id === score.userId
+                              ? "bg-primary/5 dark:bg-primary/10"
+                              : "hover:bg-gray-50 dark:hover:bg-slate-700"
+                          }`}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                                {index + 1}
+                              </span>
+                              {score.previousRank && score.rank && (
+                                <span className="ml-2">
+                                  {score.previousRank > score.rank ? (
+                                    <FiArrowUp className="w-4 h-4 text-green-500" />
+                                  ) : score.previousRank < score.rank ? (
+                                    <FiArrowDown className="w-4 h-4 text-red-500" />
+                                  ) : null}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <Image
+                                src={score.image}
+                                alt={score.name}
+                                width={40}
+                                height={40}
+                                className="rounded-full"
+                              />
+                              <span className="ml-4 font-medium text-gray-900 dark:text-white">
+                                {score.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                              {score.score.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
+                            {new Date(score.timestamp).toLocaleDateString()}
+                          </td>
+                        </motion.tr>
+                      ))}
+                </AnimatePresence>
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+
+        {/* User's Position (if logged in) */}
+        {session && userScore && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 bg-primary text-white rounded-xl p-6 shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Image
+                  src={session.user?.image!}
+                  alt={session.user?.name!}
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                />
+                <div className="ml-4">
+                  <p className="text-sm opacity-90">Your Position</p>
+                  <p className="text-xl font-bold">
+                    #
+                    {scores.findIndex((s) => s.userId === session.user?.id) + 1}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm opacity-90">Your Best Score</p>
+                <p className="text-xl font-bold">
+                  {userScore.score.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
