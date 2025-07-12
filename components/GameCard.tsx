@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { Game } from "@/lib/games";
+import { easeInOut } from "framer-motion";
+
 
 type GameCardProps = {
   game: Game;
@@ -23,7 +25,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
       y: -8,
       transition: {
         duration: 0.3,
-        ease: "easeOut",
+        ease: easeInOut,
       },
     },
   };
@@ -33,7 +35,7 @@ export default function GameCard({ game, featured = false }: GameCardProps) {
       scale: 1.1,
       transition: {
         duration: 0.3,
-        ease: "easeOut",
+        ease: easeInOut,
       },
     },
   };

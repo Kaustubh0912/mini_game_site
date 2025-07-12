@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useTheme } from "next-themes";
 import Image from "next/image";
-import { FiMenu, FiX, FiSearch, FiSun, FiMoon } from "react-icons/fi";
+import { FiMenu, FiX, FiSun, FiMoon } from "react-icons/fi";
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -23,7 +23,6 @@ export default function Layout({ children }: LayoutProps) {
   // States
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   // Set mounted to true on client side
@@ -63,12 +62,7 @@ export default function Layout({ children }: LayoutProps) {
     { href: "/profile", label: "Profile" },
   ];
 
-  // Handle search
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Implement search functionality
-    console.log("Searching for:", searchQuery);
-  };
+
 
   // Only render theme toggle button after mounting
   const renderThemeChanger = () => {

@@ -11,9 +11,10 @@ import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const {status } = useSession();
+
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -45,6 +46,7 @@ export default function LoginPage() {
         setError("Authentication failed. Please try again.");
       }
     } catch (error) {
+      console.error("Sign in error:", error);
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);

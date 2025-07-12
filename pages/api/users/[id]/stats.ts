@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSession } from "next-auth/react";
 import clientPromise from "@/lib/mongodb";
-import { ObjectId } from "mongodb";
 
 export default async function handler(
   req: NextApiRequest,

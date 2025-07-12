@@ -1,7 +1,5 @@
 import { GetStaticPaths, GetStaticProps } from "next";
-import { useSession } from "next-auth/react";
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { Game } from "@/lib/games";
@@ -94,8 +92,6 @@ export const getStaticProps: GetStaticProps<GamePageProps> = async ({
 
 // Main component
 export default function GamePage({ gameInfo }: GamePageProps) {
-  const { data: session } = useSession();
-  const [isPlaying, setIsPlaying] = useState(false);
 
   // Get the game component
   const GameComponent =
@@ -137,7 +133,6 @@ export default function GamePage({ gameInfo }: GamePageProps) {
             {/* Action Buttons */}
             <div className="flex gap-4">
               <button
-                onClick={() => setIsPlaying(true)}
                 className="px-6 py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary-dark transition-colors"
               >
                 Play Now

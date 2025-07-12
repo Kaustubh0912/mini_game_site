@@ -14,6 +14,8 @@ export interface Game {
   highScore?: number;
   progress?: number;
   createdAt: Date;
+  lastPlayed?: Date; // Optional, for games that have been played
+  recentAchievement?: string; // Optional, for games with achievements
 }
 
 export const sampleGames: Game[] = [

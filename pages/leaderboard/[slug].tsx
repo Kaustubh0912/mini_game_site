@@ -4,7 +4,7 @@ import { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { FiClock, FiAward, FiArrowUp, FiArrowDown } from "react-icons/fi";
 import { FaTrophy } from "react-icons/fa";
@@ -54,7 +54,7 @@ export const getServerSideProps: GetServerSideProps<{
       totalPlayers: scores.length,
       averageScore: Math.round(
         scores.reduce((acc: number, curr: Score) => acc + curr.score, 0) /
-          scores.length,
+          scores.length
       ),
       highestScore: Math.max(...scores.map((s: Score) => s.score)),
     };
@@ -120,7 +120,7 @@ export default function LeaderboardPage({
 
     try {
       const res = await fetch(
-        `/api/scores/${gameSlug}?timeFrame=${newTimeFrame}`,
+        `/api/scores/${gameSlug}?timeFrame=${newTimeFrame}`
       );
       const newScores = await res.json();
       setScores(newScores);
@@ -241,7 +241,7 @@ export default function LeaderboardPage({
                 >
                   {tf.charAt(0).toUpperCase() + tf.slice(1)}
                 </button>
-              ),
+              )
             )}
           </div>
         </div>
@@ -368,8 +368,8 @@ export default function LeaderboardPage({
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Image
-                  src={session.user?.image!}
-                  alt={session.user?.name!}
+                  src={session.user?.image ?? "/default-avatar.png"}
+                  alt={session.user?.name ?? "User"}
                   width={40}
                   height={40}
                   className="rounded-full"

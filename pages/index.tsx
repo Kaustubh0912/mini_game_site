@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
-import defaultHeroImage from "@/public/images/default-hero.jpg";
 import { motion } from "framer-motion";
 import GameCard from "@/components/GameCard";
 
@@ -16,28 +15,43 @@ import type { GetServerSideProps } from "next";
 import clientPromise from "@/lib/mongodb";
 import type { Game } from "@/lib/games";
 
+interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  src: string;
+  fallbackSrc: string;
+  alt: string;
+  priority?: boolean;
+}
 const ImageWithFallback = ({
   src,
   fallbackSrc,
   alt,
+  width,
+  height,
+  fill,
+  priority,
   ...props
-}: {
-  src: string;
-  fallbackSrc: string;
-  alt: string;
-  [key: string]: any;
+}: ImageWithFallbackProps & {
+  width?: number;
+  height?: number;
+  fill?: boolean;
+  priority?: boolean;
 }) => {
   const [imgSrc, setImgSrc] = useState(src);
 
+  // Only pass allowed props to Next.js Image
   return (
     <Image
-      {...props}
       src={imgSrc}
       alt={alt}
+      width={width}
+      height={height}
+      fill={fill}
+      priority={priority}
       onError={() => setImgSrc(fallbackSrc)}
+      {...props}
     />
   );
-};
+}
 
 // Types
 type HomePageProps = {

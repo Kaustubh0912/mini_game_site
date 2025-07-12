@@ -15,7 +15,7 @@ import {
 } from "react-icons/fi";
 import { FaGamepad, FaTrophy } from "react-icons/fa";
 import type { Session } from "next-auth";
-import type { UserStats, Achievement, GameActivity } from "@/types/user";
+import type { UserStats, Achievement } from "@/types/user";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 type TabId = "overview" | "achievements" | "settings";
 
@@ -245,12 +245,18 @@ function Achievements({ stats }: { stats: UserStats | null }) {
 
 // Settings Component
 function Settings({ session }: { session: Session }) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    displayName: string;
+    email: string;
+    bio: string;
+    notifications: boolean;
+    theme: "system" | "light" | "dark";
+  }>({
     displayName: session.user.name || "",
     email: session.user.email || "",
     bio: "",
     notifications: true,
-    theme: "system" as const,
+    theme: "system",
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);

@@ -21,6 +21,7 @@ export default async function handler(
 
       return res.status(200).json(games);
     } catch (error) {
+      console.error("Error fetching games:", error);
       return res.status(500).json({ message: "Error fetching games" });
     }
   }
@@ -43,6 +44,7 @@ export default async function handler(
       const result = await db.collection("games").insertOne(newGame);
       return res.status(201).json(result);
     } catch (error) {
+      console.error("Error creating game:", error);
       return res.status(500).json({ message: "Error creating game" });
     }
   }
