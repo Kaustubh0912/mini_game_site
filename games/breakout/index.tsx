@@ -43,7 +43,7 @@ const createBricks = (): Brick[][] => {
       }
 
       return { x: 0, y: 0, status };
-    })
+    }),
   );
 };
 
@@ -124,7 +124,7 @@ const BreakoutGame = () => {
           bricksLeft++;
         }
         return brick;
-      })
+      }),
     );
 
     setBricks(newBricks);
@@ -172,7 +172,7 @@ const BreakoutGame = () => {
               5,
               brick.x + BRICK_WIDTH / 2,
               brick.y + BRICK_HEIGHT / 2,
-              BRICK_WIDTH
+              BRICK_WIDTH,
             );
 
             gradient.addColorStop(0, "#a855f7");
@@ -181,7 +181,7 @@ const BreakoutGame = () => {
             context.fillStyle = gradient;
             context.fillRect(brick.x, brick.y, BRICK_WIDTH, BRICK_HEIGHT);
           }
-        })
+        }),
       );
 
       // Paddle
@@ -190,7 +190,7 @@ const BreakoutGame = () => {
         paddleX,
         CANVAS_HEIGHT - PADDLE_HEIGHT,
         PADDLE_WIDTH,
-        PADDLE_HEIGHT
+        PADDLE_HEIGHT,
       );
 
       // Ball
@@ -221,6 +221,26 @@ const BreakoutGame = () => {
     };
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  // --- Touch Controls ---
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault(); // Prevent scrolling when touching the canvas
+      const touch = e.touches[0];
+      const relativeX = touch.clientX - canvas.getBoundingClientRect().left;
+      let newX = relativeX - PADDLE_WIDTH / 2;
+      if (newX < 0) newX = 0;
+      if (newX + PADDLE_WIDTH > CANVAS_WIDTH)
+        newX = CANVAS_WIDTH - PADDLE_WIDTH;
+      setPaddleX(newX);
+    };
+
+    canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+    return () => canvas.removeEventListener("touchmove", handleTouchMove);
   }, []);
 
   // --- Score Submission ---
@@ -262,7 +282,7 @@ const BreakoutGame = () => {
   const restartGame = () => {
     setIsGameOver(false);
     setIsWin(false);
-    setBallSpeed(INITIAL_BALL_SPEED); 
+    setBallSpeed(INITIAL_BALL_SPEED);
     resetBall();
     setScore(0);
     setLives(3);
@@ -285,8 +305,9 @@ const BreakoutGame = () => {
         <p className="text-yellow-400 font-semibold">🧱 Level: {level}</p>
         <p className="text-red-500 font-semibold">❤️ Lives: {lives}</p>
         <p className="text-blue-400 font-semibold">📈 FPS: {fps}</p>
-        <p className="text-purple-300 font-semibold">⚡ Speed: {ballSpeed.toFixed(2)}</p>
-
+        <p className="text-purple-300 font-semibold">
+          ⚡ Speed: {ballSpeed.toFixed(2)}
+        </p>
       </div>
 
       <div className="relative mt-4">
