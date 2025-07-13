@@ -92,7 +92,6 @@ export const getStaticProps: GetStaticProps<GamePageProps> = async ({
 
 // Main component
 export default function GamePage({ gameInfo }: GamePageProps) {
-
   // Get the game component
   const GameComponent =
     gameComponents[gameInfo.slug as keyof typeof gameComponents];
@@ -132,17 +131,17 @@ export default function GamePage({ gameInfo }: GamePageProps) {
 
             {/* Action Buttons */}
             <div className="flex gap-4">
-              <button
-                className="px-6 py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary-dark transition-colors"
-              >
+              <button className="px-6 py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary-dark transition-colors">
                 Play Now
               </button>
-              <Link
-                href={`/leaderboard/${gameInfo.slug}`}
-                className="px-6 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-white rounded-full font-semibold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
-              >
-                View Leaderboard
-              </Link>
+              {gameInfo.slug !== "tic-tac-toe" && (
+                <Link
+                  href={`/leaderboard/${gameInfo.slug}`}
+                  className="px-6 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-white rounded-full font-semibold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                >
+                  View Leaderboard
+                </Link>
+              )}
             </div>
           </motion.div>
         </div>

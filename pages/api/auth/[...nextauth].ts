@@ -21,13 +21,24 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/login",
+    error: "/login", // Add this to handle auth errors
   },
+  debug: process.env.NODE_ENV === "development",
   callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub ?? "";
       }
       return session;
+    },
+    async signIn() {
+      return true; // Allow all sign-ins - this simplifies the process for now
     },
     async redirect({ url, baseUrl }) {
       // Allows relative callback URLs

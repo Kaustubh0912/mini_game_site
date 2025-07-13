@@ -1,6 +1,8 @@
 // tailwind.config.js
+import lineClamp from "@tailwindcss/line-clamp";
+
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+const config = {
   darkMode: "class",
   content: [
     "./pages/**/*.{js,ts,jsx,tsx}",
@@ -21,8 +23,6 @@ module.exports = {
       },
     },
   },
-  plugins: [require("@tailwindcss/line-clamp")],
-  // This should already be here from the image fix
   images: {
     remotePatterns: [
       {
@@ -34,3 +34,5 @@ module.exports = {
     ],
   },
 };
+
+export default config;

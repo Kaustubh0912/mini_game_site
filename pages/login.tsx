@@ -11,10 +11,11 @@ import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { error: queryError } = router.query;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const {status } = useSession();
-
+  const [errorDetails, setErrorDetails] = useState("");
+  const { status } = useSession();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -23,31 +24,55 @@ export default function LoginPage() {
       router.push(callbackUrl || "/");
     }
   }, [status, router]);
-
-  if (status === "loading") {
-    return <LoadingSkeleton />;
-  }
-  if (status === "authenticated") {
-    return null;
-  }
+  useEffect(() => {
+    if (queryError) {
+      if (queryError === "OAuthAccountNotLinked") {
+        setError("Account linking error");
+        setErrorDetails(
+          "You already have an account with a different sign-in method. Please use the method you signed up with."
+        );
+      } else {
+        setError("Authentication error");
+        setErrorDetails(String(queryError));
+      }
+    }
+  }, [queryError]);
 
   // Handle provider sign in
   const handleSignIn = async (provider: "github" | "google") => {
     try {
       setIsLoading(true);
       setError(null);
+      setErrorDetails("");
+
+      console.log(`Attempting to sign in with ${provider}...`);
 
       const result = await signIn(provider, {
         callbackUrl: (router.query.callbackUrl as string) || "/",
         redirect: false,
       });
 
+      console.log("Sign in result:", result);
+
       if (result?.error) {
-        setError("Authentication failed. Please try again.");
+        console.error("Sign in error:", result.error);
+        setError(`Authentication failed`);
+        setErrorDetails(result.error);
+
+        // If there's an error with the GitHub config
+        if (result.error.includes("Configuration")) {
+          setErrorDetails(
+            `Please check server configuration for ${provider} authentication`
+          );
+        }
+      } else if (result?.url) {
+        // Successful sign in with redirect URL
+        router.push(result.url);
       }
     } catch (error) {
       console.error("Sign in error:", error);
-      setError("An unexpected error occurred. Please try again.");
+      setError("An unexpected error occurred");
+      setErrorDetails(error instanceof Error ? error.message : "Unknown error");
     } finally {
       setIsLoading(false);
     }
@@ -68,6 +93,16 @@ export default function LoginPage() {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
   };
+
+  // Show loading skeleton while checking session
+  if (status === "loading") {
+    return <LoadingSkeleton />;
+  }
+
+  // Don't render anything if already authenticated (will redirect via useEffect)
+  if (status === "authenticated") {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
@@ -117,9 +152,10 @@ export default function LoginPage() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm text-center"
+              className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm"
             >
-              {error}
+              <p className="font-semibold">{error}</p>
+              {errorDetails && <p className="mt-1 text-xs">{errorDetails}</p>}
             </motion.div>
           )}
 
@@ -187,6 +223,40 @@ export default function LoginPage() {
           </a>
           .
         </motion.p>
+
+        {/* Debug Information */}
+        <div className="mt-8 text-center">
+          <details className="text-sm text-gray-500">
+            <summary className="cursor-pointer hover:text-primary">
+              Troubleshooting
+            </summary>
+            <div className="mt-2 p-4 bg-gray-50 dark:bg-slate-800 rounded-lg text-left">
+              <p className="mb-2">If you&rsquo;re having trouble logging in:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Check if you&rsquo;re allowing third-party cookies</li>
+                <li>Try using a different browser</li>
+                <li>Clear your browser cache and cookies</li>
+              </ul>
+              <button
+                onClick={() => {
+                  console.log("Current environment:", {
+                    nodeEnv: process.env.NODE_ENV,
+                    hasGithubConfig: Boolean(
+                      process.env.NEXT_PUBLIC_HAS_GITHUB_AUTH
+                    ),
+                    hasGoogleConfig: Boolean(
+                      process.env.NEXT_PUBLIC_HAS_GOOGLE_AUTH
+                    ),
+                    nextAuthUrl: process.env.NEXT_PUBLIC_AUTH_URL || "Not set",
+                  });
+                }}
+                className="mt-3 text-xs text-primary hover:underline"
+              >
+                Debug Auth Info
+              </button>
+            </div>
+          </details>
+        </div>
 
         {/* Loading Overlay */}
         {isLoading && (

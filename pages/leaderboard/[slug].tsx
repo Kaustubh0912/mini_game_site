@@ -348,7 +348,7 @@ export default function LeaderboardPage({
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                            {new Date(score.timestamp).toLocaleDateString()}
+                            {new Date(score.timestamp).toLocaleDateString("en-GB")}
                           </td>
                         </motion.tr>
                       ))}
