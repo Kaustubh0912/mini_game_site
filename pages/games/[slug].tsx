@@ -7,13 +7,14 @@ import dynamic from "next/dynamic";
 import clientPromise from "@/lib/mongodb";
 
 // Define available games
-const AVAILABLE_GAMES = ["tic-tac-toe", "snake", "breakout"];
+const AVAILABLE_GAMES = ["tic-tac-toe", "snake", "breakout", "wordle"];
 
 // Dynamically import game components
 const gameComponents = {
   "tic-tac-toe": dynamic(() => import("@/games/tic-tac-toe")),
   snake: dynamic(() => import("@/games/snake")),
   breakout: dynamic(() => import("@/games/breakout")),
+  wordle: dynamic(() => import("@/games/wordle")),
 };
 
 // Types
@@ -134,14 +135,15 @@ export default function GamePage({ gameInfo }: GamePageProps) {
               <button className="px-6 py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary-dark transition-colors">
                 Play Now
               </button>
-              {gameInfo.slug !== "tic-tac-toe" && (
-                <Link
-                  href={`/leaderboard/${gameInfo.slug}`}
-                  className="px-6 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-white rounded-full font-semibold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
-                >
-                  View Leaderboard
-                </Link>
-              )}
+              {gameInfo.slug !== "tic-tac-toe" &&
+                gameInfo.slug !== "wordle" && (
+                  <Link
+                    href={`/leaderboard/${gameInfo.slug}`}
+                    className="px-6 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-white rounded-full font-semibold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                  >
+                    View Leaderboard
+                  </Link>
+                )}
             </div>
           </motion.div>
         </div>

@@ -3,7 +3,7 @@ export interface UserStats {
   totalGamesPlayed: number;
   averageScore: number;
   achievementsUnlocked: number;
-  recentActivity: GameActivity[];
+  recentActivity?: GameActivity[];
 }
 
 export interface GameActivity {
@@ -14,13 +14,35 @@ export interface GameActivity {
   timePlayed: number;
   highScore: number;
   totalGames: number;
-  achievements: Achievement[];
+  achievements?: Achievement[];
 }
 
 export interface Achievement {
   id: string;
   name: string;
   description: string;
-  icon: string;
-  unlockedAt: string;
+  icon?: string;
+  unlockedAt?: Date;
+}
+
+export interface UserStats {
+  totalTimePlayed: number;
+  totalGamesPlayed: number;
+  averageScore: number;
+  achievementsUnlocked: number;
+  recentActivity?: GameActivity[];
+}
+
+export interface UserProfile {
+  userId: string;
+  displayName?: string;
+  bio?: string;
+  stats: UserStats;
+  gameStats: GameActivity[];
+  settings: {
+    theme: "system" | "light" | "dark";
+    notifications: boolean;
+  };
+  createdAt: Date;
+  updatedAt: Date;
 }
