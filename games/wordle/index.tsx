@@ -97,9 +97,9 @@ const Keyboard = ({
   ];
 
   return (
-    <div className="w-full max-w-lg mx-auto space-y-1.5">
+    <div className="w-full max-w-lg mx-auto space-y-1 sm:space-y-1.5">
       {rows.map((row, rowIndex) => (
-        <div key={rowIndex} className="flex justify-center gap-1.5 w-full">
+        <div key={rowIndex} className="flex justify-center gap-1 sm:gap-1.5 w-full">
           {rowIndex === 1 && <div className="flex-[0.5]" />}
           {row.map((key) => {
             const isSpecialKey = key === "enter" || key === "backspace";
@@ -115,7 +115,7 @@ const Keyboard = ({
                   else if (key === "backspace") onDelete();
                   else onChar(key);
                 }}
-                className={`h-12 rounded-md font-bold uppercase flex items-center justify-center transition-colors ${keyStyle} ${
+                className={`h-12 sm:h-14 rounded-md font-bold uppercase flex items-center justify-center transition-colors ${keyStyle} ${
                   !isSpecialKey
                     ? keyStatusStyles[
                         (["correct", "present", "absent", "tbd"].includes(
@@ -465,7 +465,7 @@ const Wordle = () => {
     .map((_, rowIndex) => (
       <motion.div
         key={rowIndex}
-        className="grid grid-cols-5 gap-1.5"
+        className="grid grid-cols-5 gap-1 sm:gap-1.5"
         animate={
           isShaking && rowIndex === guesses.length
             ? { x: [-8, 8, -8, 8, 0] }
@@ -493,7 +493,7 @@ const Wordle = () => {
     ));
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-h-[800px] w-full max-w-lg mx-auto bg-white dark:bg-gray-900 text-black dark:text-white relative">
+    <div className="flex flex-col h-full w-full max-w-md mx-auto bg-white dark:bg-gray-900 text-black dark:text-white relative rounded-lg">
       {showConfetti && <ConfettiCelebration />}
 
       <AnimatePresence>
@@ -555,7 +555,7 @@ const Wordle = () => {
         </div>
       </header>
 
-      <main className="flex-1 w-full flex flex-col items-center justify-center p-2 space-y-4 overflow-hidden">
+      <main className="flex-1 w-full flex flex-col items-center justify-center p-1 sm:p-2 space-y-2 sm:space-y-4 overflow-hidden">
         <div className="h-8 flex items-center justify-center">
           <AnimatePresence>
             {message && (
@@ -571,10 +571,10 @@ const Wordle = () => {
           </AnimatePresence>
         </div>
 
-        <div className="grid grid-rows-6 gap-1.5 w-full max-w-xs">{grid}</div>
+        <div className="grid grid-rows-6 gap-1 sm:gap-1.5 w-full max-w-sm p-1 sm:p-2">{grid}</div>
       </main>
 
-      <footer className="w-full p-2 flex-shrink-0">
+      <footer className="w-full p-1 sm:p-2 flex-shrink-0">
         <Keyboard
           usedKeys={usedKeys}
           onChar={handleChar}

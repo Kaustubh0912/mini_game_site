@@ -98,7 +98,7 @@ export default function GamePage({ gameInfo }: GamePageProps) {
     gameComponents[gameInfo.slug as keyof typeof gameComponents];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
       {/* Game Header */}
       <div className="flex flex-col md:flex-row gap-8 mb-8">
         {/* Game Image */}
@@ -154,7 +154,7 @@ export default function GamePage({ gameInfo }: GamePageProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6"
+        className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-2 sm:p-4 md:p-6"
       >
         {GameComponent ? (
           <GameComponent />
