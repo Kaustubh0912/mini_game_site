@@ -7,14 +7,13 @@ import dynamic from "next/dynamic";
 import clientPromise from "@/lib/mongodb";
 
 // Define available games
-const AVAILABLE_GAMES = ["tic-tac-toe", "snake", "breakout", "wordle"];
+const AVAILABLE_GAMES = ["tic-tac-toe", "snake", "breakout"];
 
 // Dynamically import game components
 const gameComponents = {
   "tic-tac-toe": dynamic(() => import("@/games/tic-tac-toe")),
   snake: dynamic(() => import("@/games/snake")),
   breakout: dynamic(() => import("@/games/breakout")),
-  wordle: dynamic(() => import("@/games/wordle")),
 };
 
 // Types
@@ -31,7 +30,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
     // Get all game slugs from the database
     const games = await db
       .collection("games")
-      .find({})
+      .find({ slug: { $ne: "wordle" } }) // ❌ exclude wordle
       .project({ slug: 1, _id: 0 })
       .toArray();
 
