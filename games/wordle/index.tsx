@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchWordList, getRandomWord, isValidWord } from "@/lib/wordlist";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
+import { useSession } from "next-auth/react";
 import {
   FiBarChart2,
   FiSettings,
@@ -9,6 +10,7 @@ import {
   FiRefreshCw,
   FiClock,
   FiAward,
+  FiList,
 } from "react-icons/fi";
 import Confetti from "react-confetti";
 
@@ -159,12 +161,14 @@ const StatsModal = ({
   isOpen,
   onClose,
   onRestart,
+  showLeaderboard,
 }: {
   stats: GameStats;
   gameMode: GameMode;
   isOpen: boolean;
   onClose: () => void;
   onRestart: () => void;
+  showLeaderboard: () => void;
 }) => {
   if (!isOpen) return null;
   const winPercentage =
@@ -246,15 +250,27 @@ const StatsModal = ({
           </div>
         )}
 
-        <button
-          onClick={() => {
-            onClose();
-            onRestart();
-          }}
-          className="w-full flex items-center justify-center gap-2 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 transition-colors"
-        >
-          <FiRefreshCw /> Play Again
-        </button>
+        <div className="grid grid-cols-2 gap-4 mb-2">
+          <button
+            onClick={() => {
+              onClose();
+              showLeaderboard();
+            }}
+            className="flex items-center justify-center gap-2 py-3 px-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            <FiList /> Leaderboard
+          </button>
+
+          <button
+            onClick={() => {
+              onClose();
+              onRestart();
+            }}
+            className="flex items-center justify-center gap-2 py-3 px-4 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            <FiRefreshCw /> Play Again
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -374,7 +390,7 @@ const SettingsModal = ({
             />
             <div className="block bg-gray-600 w-10 h-6 rounded-full"></div>
             <div
-              className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition ${
+              className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full z-10 transition ${
                 expertMode ? "transform translate-x-full bg-green-400" : ""
               }`}
             ></div>
@@ -390,6 +406,164 @@ const SettingsModal = ({
         >
           Start Game
         </button>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// --- Leaderboard Modal ---
+const LeaderboardModal = ({
+  isOpen,
+  onClose,
+  gameMode,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  gameMode: GameMode;
+}) => {
+  const [scores, setScores] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { data: session } = useSession();
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      if (!isOpen) return;
+      
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`/api/scores/wordle?gameMode=${gameMode}`);
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch leaderboard data");
+        }
+        
+        const data = await response.json();
+        setScores(data);
+      } catch (error) {
+        console.error("Failed to fetch leaderboard:", error);
+        setError("Failed to load leaderboard. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, [isOpen, gameMode]);
+
+  if (!isOpen) return null;
+
+  const modeNames = {
+    classic: "Classic Mode",
+    "time-trial": "Time Trial Mode",
+    scramble: "Scramble Mode", 
+    "word-chain": "Word Chain Mode",
+    streak: "Streak Mode"
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-3xl m-4 max-h-[80vh] overflow-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">Wordle Leaderboard</h2>
+          <div className="flex items-center gap-4">
+            <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-sm">
+              {modeNames[gameMode]}
+            </span>
+            <button
+              onClick={onClose}
+              className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+            >
+              <FiX size={24} />
+            </button>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-500 dark:text-gray-400">Loading leaderboard...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-lg">
+            {error}
+          </div>
+        ) : scores.length === 0 ? (
+          <div className="text-center py-12">
+            <FiAward className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400">No scores available for this game mode yet.</p>
+            <p className="text-gray-500 dark:text-gray-400">Be the first to submit a score!</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead>
+                <tr>
+                  <th className="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Rank</th>
+                  <th className="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Player</th>
+                  <th className="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Score</th>
+                  <th className="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {scores.map((score, index) => (
+                  <tr 
+                    key={index}
+                    className={session?.user?.id === score.userId ? "bg-blue-50 dark:bg-blue-900/20" : ""}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {index === 0 ? (
+                        <span className="inline-flex items-center justify-center w-8 h-8 bg-yellow-500 text-white rounded-full">1</span>
+                      ) : index === 1 ? (
+                        <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-400 text-white rounded-full">2</span>
+                      ) : index === 2 ? (
+                        <span className="inline-flex items-center justify-center w-8 h-8 bg-yellow-700 text-white rounded-full">3</span>
+                      ) : (
+                        <span>{index + 1}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <img className="h-10 w-10 rounded-full" src={score.image || "/default-avatar.png"} alt="" />
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">{score.name}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-lg font-semibold text-gray-900 dark:text-white">
+                      {score.score.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {new Date(score.timestamp).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            Close
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -413,6 +587,7 @@ const Wordle = () => {
   const [streakCount, setStreakCount] = useState(0);
   const [livesLeft, setLivesLeft] = useState(3);
   const [previousSolution, setPreviousSolution] = useState("");
+  const [timeElapsed, setTimeElapsed] = useState(0);
 
   // UI State
   const [message, setMessage] = useState("");
@@ -421,7 +596,10 @@ const Wordle = () => {
   const [isShaking, setIsShaking] = useState(false);
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isLeaderboardModalOpen, setIsLeaderboardModalOpen] = useState(false);
   const [showFirstHint, setShowFirstHint] = useState(false);
+
+  const { data: session } = useSession();
 
   // Stats State
   const [stats, setStats] = useState<GameStats>({
@@ -473,114 +651,114 @@ const Wordle = () => {
   }, []);
 
   const resetGame = useCallback((continuingChain = false) => {
-  // Get a new solution word
-  const newSolution = getRandomWord();
-  if (newSolution && newSolution !== "error") {
-    console.log("New solution:", newSolution); // Debug info
-    setSolution(newSolution);
-    
-    // Handle scramble mode - but only generate scrambled once
-    if (gameMode === "scramble") {
-      const scrambled = scrambleWord(newSolution);
-      setScrambledSolution(scrambled);
-    } else {
-      setScrambledSolution("");
-    }
-
-    // Handle word-chain mode
-    if (gameMode === "word-chain" && continuingChain && previousSolution) {
-      // First guess is the previous solution
-      setGuesses([previousSolution]);
-      setCurrentGuess("");
-    } else {
-      setGuesses([]);
-      setCurrentGuess("");
+    // Get a new solution word
+    const newSolution = getRandomWord();
+    if (newSolution && newSolution !== "error") {
+      console.log("New solution:", newSolution); // Debug info
+      setSolution(newSolution);
       
-      // Reset chain if starting fresh
-      if (gameMode === "word-chain" && !continuingChain) {
-        setChainLength(0);
+      // Handle scramble mode - but only generate scrambled once
+      if (gameMode === "scramble") {
+        const scrambled = scrambleWord(newSolution);
+        setScrambledSolution(scrambled);
+      } else {
+        setScrambledSolution("");
       }
-    }
 
-    // Handle streak mode
-    if (gameMode === "streak" && !continuingChain) {
-      setLivesLeft(3);
-      setStreakCount(0);
+      // Handle word-chain mode
+      if (gameMode === "word-chain" && continuingChain && previousSolution) {
+        // First guess is the previous solution
+        setGuesses([previousSolution]);
+        setCurrentGuess("");
+      } else {
+        setGuesses([]);
+        setCurrentGuess("");
+        
+        // Reset chain if starting fresh
+        if (gameMode === "word-chain" && !continuingChain) {
+          setChainLength(0);
+        }
+      }
+
+      // Handle streak mode
+      if (gameMode === "streak" && !continuingChain) {
+        setLivesLeft(3);
+        setStreakCount(0);
+      }
+      
+      // Store the solution for next round in word-chain mode
+      if (gameMode === "word-chain" || continuingChain) {
+        setPreviousSolution(newSolution);
+      }
+      
+      setIsGameOver(false);
+      setHasWon(false);
+      setShowConfetti(false);
+      setMessage("");
+      setError(null);
+      setTimeElapsed(0);
+      
+      // Reset timer for time trial
+      if (gameMode === "time-trial") {
+        setTimeLeft(60);
+        setTimeTrialScore(0);
+      }
+    } else {
+      setError("Could not start a new game. Please try again later.");
+      setIsLoading(false);
     }
-    
-    // Store the solution for next round in word-chain mode
-    if (gameMode === "word-chain" || continuingChain) {
-      setPreviousSolution(newSolution);
-    }
-    
-    setIsGameOver(false);
-    setHasWon(false);
-    setShowConfetti(false);
-    setMessage("");
-    setError(null);
-    
-    // Reset timer for time trial
-    if (gameMode === "time-trial") {
-      setTimeLeft(60);
-      setTimeTrialScore(0);
-    }
-  } else {
-    setError("Could not start a new game. Please try again later.");
-    setIsLoading(false);
-  }
-}, [gameMode, previousSolution, scrambleWord]);
+  }, [gameMode, previousSolution, scrambleWord]);
 
   // Initialize game
   useEffect(() => {
-  const initializeGame = async () => {
-    setIsLoading(true);
-    try {
-      await fetchWordList();
-      const newSolution = getRandomWord();
-      if (newSolution && newSolution !== "error") {
-        console.log("New solution:", newSolution);
-        setSolution(newSolution);
-        
-        if (gameMode === "scramble") {
-          setScrambledSolution(scrambleWord(newSolution));
+    const initializeGame = async () => {
+      setIsLoading(true);
+      try {
+        await fetchWordList();
+        const newSolution = getRandomWord();
+        if (newSolution && newSolution !== "error") {
+          console.log("New solution:", newSolution);
+          setSolution(newSolution);
+          
+          if (gameMode === "scramble") {
+            setScrambledSolution(scrambleWord(newSolution));
+          }
+          
+          setGuesses([]);
+          setCurrentGuess("");
+          setIsGameOver(false);
+          setHasWon(false);
+          setShowConfetti(false);
+          setMessage("");
+          setError(null);
+          setPreviousSolution(newSolution);
+          
+          if (gameMode === "time-trial") {
+            setTimeLeft(60);
+            setTimeTrialScore(0);
+          }
+          
+          if (gameMode === "streak") {
+            setLivesLeft(3);
+            setStreakCount(0);
+          }
+          
+          if (gameMode === "word-chain") {
+            setChainLength(0);
+          }
+        } else {
+          setError("Could not start a new game. Please try again later.");
         }
-        
-        setGuesses([]);
-        setCurrentGuess("");
-        setIsGameOver(false);
-        setHasWon(false);
-        setShowConfetti(false);
-        setMessage("");
-        setError(null);
-        setPreviousSolution(newSolution);
-        
-        if (gameMode === "time-trial") {
-          setTimeLeft(60);
-          setTimeTrialScore(0);
-        }
-        
-        if (gameMode === "streak") {
-          setLivesLeft(3);
-          setStreakCount(0);
-        }
-        
-        if (gameMode === "word-chain") {
-          setChainLength(0);
-        }
-      } else {
-        setError("Could not start a new game. Please try again later.");
+      } catch (err) {
+        console.error("Failed to initialize game:", err);
+        setError("Failed to load game. Please refresh the page.");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      console.error("Failed to initialize game:", err);
-      setError("Failed to load game. Please refresh the page.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  initializeGame();
-  // Don't include resetGame in the dependency array!
-}, [gameMode, scrambleWord]);
+    };
+    
+    initializeGame();
+  }, [gameMode, scrambleWord]);
 
   // Show first letter hint in word-chain mode
   useEffect(() => {
@@ -609,6 +787,17 @@ const Wordle = () => {
 
     return () => clearInterval(timer);
   }, [gameMode, isGameOver, solution, timeLeft]);
+
+  // Track time elapsed for all games
+  useEffect(() => {
+    if (isGameOver || !hasWon) return;
+    
+    const timer = setInterval(() => {
+      setTimeElapsed(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [isGameOver, hasWon]);
 
   // Determine color status for each letter in a guess
   const getGuessStatuses = useCallback(
@@ -874,7 +1063,7 @@ const Wordle = () => {
   // Handle keyboard controls
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (isGameOver || isStatsModalOpen || isSettingsModalOpen) return;
+      if (isGameOver || isStatsModalOpen || isSettingsModalOpen || isLeaderboardModalOpen) return;
       const key = event.key.toLowerCase();
 
       if (key === "enter") handleGuessSubmit();
@@ -890,8 +1079,51 @@ const Wordle = () => {
     guesses,
     isStatsModalOpen,
     isSettingsModalOpen,
+    isLeaderboardModalOpen,
     expertMode,
   ]);
+
+  // Submit score for completed games
+  useEffect(() => {
+    if (isGameOver && session?.user?.id) {
+      // Calculate appropriate score based on game mode
+      let finalScore = 0;
+      
+      if (gameMode === "classic" || gameMode === "scramble") {
+        // For classic/scramble: fewer guesses = better score, faster time = bonus
+        const guessesUsed = guesses.length;
+        finalScore = hasWon ? 
+          (7 - guessesUsed) * 100 + (60 - Math.min(timeElapsed, 60)) :
+          0; // No score for losses
+      } 
+      else if (gameMode === "time-trial") {
+        // For time trial: time remaining = score
+        finalScore = hasWon ? timeTrialScore : 0;
+      } 
+      else if (gameMode === "word-chain") {
+        // For word chain: score based on chain length
+        finalScore = chainLength * 100;
+      }
+      else if (gameMode === "streak") {
+        // For streak: score based on streak count
+        finalScore = streakCount * 150;
+      }
+
+      // Only submit if there's a positive score
+      if (finalScore > 0) {
+        fetch("/api/scores", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: session.user.id,
+            gameSlug: "wordle",
+            score: finalScore,
+            gameMode: gameMode,
+          }),
+        }).catch((e) => console.error("Score submit failed", e));
+      }
+    }
+  }, [isGameOver, hasWon, guesses.length, timeTrialScore, chainLength, streakCount, session, gameMode, timeElapsed]);
 
   const handleGameModeChange = (mode: GameMode) => {
     setGameMode(mode);
@@ -966,6 +1198,7 @@ const Wordle = () => {
           isOpen={isStatsModalOpen}
           onClose={() => setIsStatsModalOpen(false)}
           onRestart={startNewGame}
+          showLeaderboard={() => setIsLeaderboardModalOpen(true)}
         />
 
         <SettingsModal
@@ -976,6 +1209,12 @@ const Wordle = () => {
           expertMode={expertMode}
           setExpertMode={handleExpertModeChange}
           onStartNewGame={startNewGame}
+        />
+
+        <LeaderboardModal
+          isOpen={isLeaderboardModalOpen}
+          onClose={() => setIsLeaderboardModalOpen(false)}
+          gameMode={gameMode}
         />
       </AnimatePresence>
 
@@ -1009,6 +1248,13 @@ const Wordle = () => {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsLeaderboardModalOpen(true)}
+            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+            title="Leaderboard"
+          >
+            <FiList size={22} />
+          </button>
           <button
             onClick={() => setIsStatsModalOpen(true)}
             className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
