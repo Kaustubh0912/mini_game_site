@@ -100,8 +100,8 @@ const Keyboard = ({
   const keyStatusStyles = {
     correct: "bg-green-500 text-white",
     present: "bg-yellow-500 text-white",
-    absent: "bg-gray-500 dark:bg-gray-700 text-white",
-    tbd: "bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500",
+    absent: "bg-gray-500 dark:bg-gray-800 text-white",
+    tbd: "bg-gray-200 dark:bg-gray-400 hover:bg-gray-300 dark:hover:bg-gray-500",
   };
 
   const rows = [
