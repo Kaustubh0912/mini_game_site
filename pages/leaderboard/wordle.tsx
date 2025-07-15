@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import WordleLeaderboard from "@/components/WordleLeaderboard";
 import Link from "next/link";

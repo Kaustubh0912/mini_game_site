@@ -3,7 +3,7 @@ import clientPromise from "@/lib/mongodb";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse,
+  res: NextApiResponse
 ) {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
@@ -21,7 +21,7 @@ export default async function handler(
     const db = client.db("miniGamesDB");
 
     // Create match condition based on parameters
-    const matchCondition: any = {
+    const matchCondition: Record<string, unknown> = {
       gameSlug: slug,
     };
 
@@ -33,7 +33,7 @@ export default async function handler(
     // Add time frame filter if provided
     if (timeFrame && timeFrame !== "all") {
       const now = new Date();
-      let startDate = new Date();
+      const startDate = new Date();
 
       if (timeFrame === "daily") {
         startDate.setDate(now.getDate() - 1);
