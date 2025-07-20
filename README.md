@@ -1,114 +1,162 @@
-# Mini Game Site 🎮
+# 🎮 Mini Game Site 🎮
 
-A modern web-based gaming platform built with Next.js, featuring classic arcade games reimagined with modern web technologies.
+<p align="center">
+  <a href="https://mini-game-site.vercel.app/">
+    <img src="public/images/hero-bg.png" alt="Mini Game Site" width="800" height="400">
+  </a>
+</p>
 
-## 🎯 Features
+<p align="center">
+  A modern web-based gaming platform built with Next.js, featuring classic arcade games reimagined with modern web technologies.
+</p>
 
-- **Multiple Classic Games:**
-  - Snake: Navigate and grow while collecting food
-  - Tic-Tac-Toe: Strategic two-player classic
-  - Breakout: Bounce and break your way to victory
+<p align="center">
+  <a href="https://mini-game-site.vercel.app/">View Demo</a>
+  ·
+  <a href="https://github.com/Kaustubh0912/mini_game_site/issues">Report Bug</a>
+  ·
+  <a href="https://github.com/Kaustubh0912/mini_game_site/issues">Request Feature</a>
+</p>
 
-- **Modern Technologies:**
-  - Built with Next.js 15 and React 19
-  - Responsive design using Tailwind CSS
-  - Dark mode support
-  - TypeScript for type safety
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-15-blue?logo=next.js" alt="Next.js">
+  <img src="https://img.shields.io/badge/React-19-blue?logo=react" alt="React">
+  <img src="https://img.shields.io/badge/TypeScript-5-blue?logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3-blue?logo=tailwind-css" alt="Tailwind CSS">
+  <img src="https://img.shields.io/badge/MongoDB-5-green?logo=mongodb" alt="MongoDB">
+  <img src="https://img.shields.io/github/license/Kaustubh0912/mini_game_site" alt="License">
+</p>
 
-- **User Features:**
-  - Authentication via NextAuth.js
-  - User profiles and scores
-  - Cross-platform compatibility
-  - Real-time game state management
+---
 
-## 🚀 Quick Start
+## 📖 Table of Contents
 
-1. **Clone and Install:**
-   ```bash
-   git clone https://github.com/Kaustubh0912/mini_game_site.git
-   cd mini_game_site
-   npm install
-   ```
+- [About the Project](#-about-the-project)
+- [Features](#-features)
+- [Getting Started](#-getting-started)
+- [Technology Stack](#-technology-stack)
+- [Project Structure](#-project-structure)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Contact](#-contact)
 
-2. **Set up Environment:**
-   Create a `.env.local` file with necessary environment variables:
-   ```
-   NEXTAUTH_URL=http://localhost:3000
-   NEXTAUTH_SECRET=your_secret_key
-   MONGODB_URI=your_mongodb_uri
-   ```
+---
 
-3. **Run Development Server:**
-   ```bash
-   npm run dev
-   ```
+## 🌟 About the Project
 
-4. **Open Browser:**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+This project is a web-based gaming platform that brings classic arcade games to the modern web. It's built with a focus on performance, user experience, and modern web development practices.
 
-## 🛠 Technology Stack
+---
+
+## ✨ Features
+
+- **Classic Games:**
+  - **Snake:** The timeless classic where you grow a snake by eating food.
+  - **Tic-Tac-Toe:** A simple yet strategic game for two players.
+  - **Breakout:** A retro arcade game where you break bricks with a ball and paddle.
+  - **Wordle:** A modern word-guessing game.
+- **User Authentication:** Secure user registration and login using NextAuth.js.
+- **User Profiles:** Personalized user profiles with game statistics and leaderboards.
+- **Responsive Design:** A fully responsive layout that works on all devices.
+- **Dark Mode:** A sleek dark mode for comfortable gaming at night.
+- **Real-time Updates:** Real-time game state management for a seamless experience.
+
+---
+
+## 🚀 Getting Started
+
+To get a local copy up and running, follow these simple steps.
+
+### Prerequisites
+
+- Node.js (v18 or later)
+- npm or yarn
+
+### Installation
+
+1.  **Clone the repository:**
+    ```sh
+    git clone https://github.com/Kaustubh0912/mini_game_site.git
+    ```
+2.  **Navigate to the project directory:**
+    ```sh
+    cd mini_game_site
+    ```
+3.  **Install dependencies:**
+    ```sh
+    npm install
+    ```
+4.  **Set up environment variables:**
+    Create a `.env.local` file in the root of the project and add the following:
+    ```env
+    NEXTAUTH_URL=http://localhost:3000
+    NEXTAUTH_SECRET=your_secret_key
+    MONGODB_URI=your_mongodb_uri
+    ```
+5.  **Run the development server:**
+    ```sh
+    npm run dev
+    ```
+6.  **Open your browser:**
+    Navigate to `http://localhost:3000`.
+
+---
+
+## 🛠️ Technology Stack
+
+This project is built with a modern and robust technology stack:
 
 - **Frontend:**
-  - Next.js 15.3.3
-  - React 19.0.0
-  - Tailwind CSS 3.4.3
-  - TypeScript 5
-
+  - [Next.js](https://nextjs.org/) 15
+  - [React](https://reactjs.org/) 19
+  - [Tailwind CSS](https://tailwindcss.com/) 3
+  - [TypeScript](https://www.typescriptlang.org/) 5
+- **Backend:**
+  - [Next.js API Routes](https://nextjs.org/docs/api-routes/introduction)
 - **Authentication:**
-  - NextAuth.js 4.24.11
-  - MongoDB Adapter
-
+  - [NextAuth.js](https://next-auth.js.org/) 4
 - **Database:**
-  - MongoDB 5.9.2
+  - [MongoDB](https://www.mongodb.com/) 5
+- **Deployment:**
+  - [Vercel](https://vercel.com/)
+
+---
 
 ## 📦 Project Structure
 
 ```
 mini_game_site/
 ├── components/       # Reusable UI components
-├── games/           # Individual game implementations
-│   ├── breakout/
-│   ├── snake/
-│   └── tic-tac-toe/
-├── lib/             # Utility functions and helpers
-├── pages/           # Next.js pages and API routes
-├── public/          # Static assets
-├── styles/          # Global styles and Tailwind config
-└── types/           # TypeScript type definitions
+├── games/            # Game-specific components and logic
+├── lib/              # Helper functions, database connection, etc.
+├── pages/            # Next.js pages and API routes
+├── public/           # Static assets (images, fonts, etc.)
+├── styles/           # Global styles and Tailwind CSS configuration
+└── types/            # TypeScript type definitions
 ```
-
-## 🎮 Game Development
-
-Each game is implemented as a standalone module in the `games` directory. Games use React hooks for state management and Canvas API for rendering where appropriate.
-
-## 🔧 Configuration
-
-- **Tailwind:** Customized theme with dark mode support
-- **Next.js:** Configured for image optimization and API routes
-- **TypeScript:** Strict mode enabled for better type safety
-
-## 🚀 Deployment
-
-Deployed on Vercel: [https://mini-game-site.vercel.app/](https://mini-game-site.vercel.app/)
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/AmazingFeature`
-3. Commit your changes: `git commit -m 'Add AmazingFeature'`
-4. Push to the branch: `git push origin feature/AmazingFeature`
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- Next.js team for the amazing framework
-- Vercel for hosting solutions
-- All contributors and players
 
 ---
 
-Built with ❤️ by [Your Name/Team Name]
+## 🤝 Contributing
+
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1.  **Fork the Project**
+2.  **Create your Feature Branch** (`git checkout -b feature/AmazingFeature`)
+3.  **Commit your Changes** (`git commit -m '''Add some AmazingFeature'''`)
+4.  **Push to the Branch** (`git push origin feature/AmazingFeature`)
+5.  **Open a Pull Request**
+
+---
+
+## 📝 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+## 📧 Contact
+
+Your Name - [kaustubharun2003@gmail.com](mailto:kaustubharun2003@gmail.com)
+
+Project Link: [https://github.com/Kaustubh0912/mini_game_site](https://github.com/Kaustubh0912/mini_game_site)
