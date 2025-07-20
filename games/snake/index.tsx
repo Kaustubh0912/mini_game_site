@@ -201,6 +201,7 @@ export default function SnakeGame() {
         userId: session.user.id,
         gameSlug: "snake",
         score,
+        timestamp: new Date().toISOString(),
       }),
     })
       .then((res) => res.json())

@@ -25,7 +25,7 @@ export const sampleGames: Game[] = [
     name: "Tic Tac Toe",
     description:
       "Classic game of X's and O's. Challenge your friends or play against the computer!",
-    image: "/images/games/tic-tac-toe.jpg",
+    image: "/images/games/tic-tac-toe.png",
     difficulty: "Easy",
     category: "Strategy",
     featured: true,
@@ -41,7 +41,7 @@ export const sampleGames: Game[] = [
     name: "Snake",
     description:
       "Guide the snake to eat the food and grow longer, but don't hit the walls or yourself!",
-    image: "/images/games/snake.jpg",
+    image: "/images/games/snake.png",
     difficulty: "Medium",
     category: "Arcade",
     featured: true,
@@ -57,7 +57,7 @@ export const sampleGames: Game[] = [
     name: "Breakout",
     description:
       "Break all the bricks with a bouncing ball. A classic arcade game reimagined!",
-    image: "/images/games/breakout.jpg",
+    image: "/images/games/breakout.png",
     difficulty: "Medium",
     category: "Arcade",
     featured: true,
@@ -66,5 +66,21 @@ export const sampleGames: Game[] = [
     rating: 4.6,
     playTime: "15 min",
     createdAt: new Date("2023-01-03"),
+  },
+  {
+    id: "4",
+    slug: "wordle",
+    name: "Wordle",
+    description:
+      "Guess the hidden word in 6 tries. A new puzzle is available each day!",
+    image: "/images/games/wordle.png",
+    difficulty: "Medium",
+    category: "Puzzle",
+    featured: true,
+    isNew: false,
+    totalPlays: 3000,
+    rating: 4.8,
+    playTime: "5-10 min",
+    createdAt: new Date("2023-01-04"),
   },
 ];

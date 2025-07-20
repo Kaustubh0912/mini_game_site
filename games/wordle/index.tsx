@@ -374,27 +374,22 @@ const SettingsModal = ({
         </div>
 
         <div className="mb-5 flex items-center justify-between">
-          <label className="text-sm font-medium">
+          <label htmlFor="expertMode" className="text-sm font-medium">
             Expert Mode
             <p className="text-xs text-gray-500 font-normal">
               Must use revealed hints in subsequent guesses
             </p>
           </label>
-          <div className="relative">
+          <label htmlFor="expertMode" className="relative inline-flex items-center cursor-pointer">
             <input
               id="expertMode"
               type="checkbox"
-              className="sr-only"
+              className="sr-only peer"
               checked={expertMode}
               onChange={() => setExpertMode(!expertMode)}
             />
-            <div className="block bg-gray-600 w-10 h-6 rounded-full"></div>
-            <div
-              className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full z-10 transition ${
-                expertMode ? "transform translate-x-full bg-green-400" : ""
-              }`}
-            ></div>
-          </div>
+            <div className="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+          </label>
         </div>
 
         <button
@@ -588,6 +583,7 @@ const Wordle = () => {
   const [livesLeft, setLivesLeft] = useState(3);
   const [previousSolution, setPreviousSolution] = useState("");
   const [timeElapsed, setTimeElapsed] = useState(0);
+  const [hintIndex, setHintIndex] = useState(-1);
 
   // UI State
   const [message, setMessage] = useState("");
@@ -612,23 +608,37 @@ const Wordle = () => {
     longestStreak: 0,
   });
 
-  // Load stats from localStorage on mount
+  // Load stats from localStorage on mount or when gameMode changes
   useEffect(() => {
-    const savedStats = localStorage.getItem("wordle_stats");
-    if (savedStats) {
-      setStats(JSON.parse(savedStats));
+    const savedMode = localStorage.getItem("wordle_game_mode");
+    const currentMode = (savedMode as GameMode) || "classic";
+    if (!savedMode) {
+      setGameMode(currentMode);
     }
 
-    const savedMode = localStorage.getItem("wordle_game_mode");
-    if (savedMode) {
-      setGameMode(savedMode as GameMode);
+    const statsKey = `wordle_stats_${currentMode}`;
+    const savedStats = localStorage.getItem(statsKey);
+
+    if (savedStats) {
+      setStats(JSON.parse(savedStats));
+    } else {
+      // Reset stats for the new mode if none are found
+      setStats({
+        gamesPlayed: 0,
+        wins: 0,
+        currentStreak: 0,
+        maxStreak: 0,
+        bestTimeTrialScore: 0,
+        longestChain: 0,
+        longestStreak: 0,
+      });
     }
 
     const savedExpertMode = localStorage.getItem("wordle_expert_mode");
     if (savedExpertMode) {
       setExpertMode(JSON.parse(savedExpertMode));
     }
-  }, []);
+  }, [gameMode]);
 
   const showToast = (text: string) => {
     setMessage(text);
@@ -642,12 +652,19 @@ const Wordle = () => {
 
   // Generate a scrambled version of the solution
   const scrambleWord = useCallback((word: string) => {
-    const chars = word.split("");
-    for (let i = chars.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [chars[i], chars[j]] = [chars[j], chars[i]];
+    let scrambled = word;
+    let attempts = 0;
+    // Keep scrambling until it's different from the original word
+    while (scrambled === word && attempts < 10) {
+      const chars = word.split('');
+      for (let i = chars.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [chars[i], chars[j]] = [chars[j], chars[i]];
+      }
+      scrambled = chars.join('');
+      attempts++;
     }
-    return chars.join("");
+    return scrambled;
   }, []);
 
   const resetGame = useCallback((continuingChain = false) => {
@@ -790,14 +807,14 @@ const Wordle = () => {
 
   // Track time elapsed for all games
   useEffect(() => {
-    if (isGameOver || !hasWon) return;
-    
+    if (isGameOver) return;
+
     const timer = setInterval(() => {
-      setTimeElapsed(prev => prev + 1);
+      setTimeElapsed((prev) => prev + 1);
     }, 1000);
-    
+
     return () => clearInterval(timer);
-  }, [isGameOver, hasWon]);
+  }, [isGameOver]);
 
   // Determine color status for each letter in a guess
   const getGuessStatuses = useCallback(
@@ -1044,7 +1061,8 @@ const Wordle = () => {
               ? Math.max(prev.longestStreak, streakCount)
               : prev.longestStreak,
         };
-        localStorage.setItem("wordle_stats", JSON.stringify(newStats));
+        const statsKey = `wordle_stats_${gameMode}`;
+        localStorage.setItem(statsKey, JSON.stringify(newStats));
         return newStats;
       });
     }
@@ -1101,8 +1119,10 @@ const Wordle = () => {
         finalScore = hasWon ? timeTrialScore : 0;
       } 
       else if (gameMode === "word-chain") {
-        // For word chain: score based on chain length
-        finalScore = chainLength * 100;
+        // For word chain: score based on chain length, submitted only on loss
+        if (!hasWon) {
+          finalScore = chainLength * 100;
+        }
       }
       else if (gameMode === "streak") {
         // For streak: score based on streak count
@@ -1119,6 +1139,7 @@ const Wordle = () => {
             gameSlug: "wordle",
             score: finalScore,
             gameMode: gameMode,
+            timestamp: new Date().toISOString(),
           }),
         }).catch((e) => console.error("Score submit failed", e));
       }
@@ -1170,16 +1191,18 @@ const Wordle = () => {
                 ? "tbd"
                 : "empty";
 
-            // Show first letter hint for word-chain mode
+            // Show a random letter hint for word-chain mode
             if (
               showFirstHint &&
               rowIndex === guesses.length &&
-              colIndex === 0 &&
-              !char
+              !currentGuess
             ) {
-              return (
-                <Tile key={colIndex} char={solution[0]} status="present" />
-              );
+              const hintIndex = Math.floor(Math.random() * solution.length);
+              if (colIndex === hintIndex) {
+                return (
+                  <Tile key={colIndex} char={solution[hintIndex]} status="present" />
+                );
+              }
             }
 
             return <Tile key={colIndex} char={char} status={status} />;

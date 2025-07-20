@@ -21,7 +21,7 @@ export default async function handler(
   }
 
   try {
-    const { gameSlug, score, gameMode } = req.body;
+    const { gameSlug, score, gameMode, timestamp } = req.body;
     const userId = session.user.id;
 
     if (!userId || !gameSlug || typeof score !== "number") {
@@ -32,32 +32,20 @@ export default async function handler(
     const db = client.db("miniGamesDB");
     const scoresCollection = db.collection("scores");
 
-    const filter = {
-      userId: userId,
-      gameSlug: gameSlug,
-      // Include gameMode in the filter if provided
-      ...(gameMode && { gameMode }),
+    const newScore = {
+      userId,
+      gameSlug,
+      score,
+      gameMode,
+      timestamp: timestamp ? new Date(timestamp) : new Date(),
     };
 
-    const update = {
-      $max: { score: score },
-      $set: { timestamp: new Date() },
-      $setOnInsert: {
-        userId: userId,
-        gameSlug: gameSlug,
-        ...(gameMode && { gameMode }),
-      },
-    };
+    // Insert the new score record
+    const result = await scoresCollection.insertOne(newScore);
 
-    const options = {
-      upsert: true,
-    };
-
-    const result = await scoresCollection.updateOne(filter, update, options);
-
-    res.status(200).json({ message: "Score processed successfully", result });
+    res.status(200).json({ message: "Score submitted successfully", result });
   } catch (error) {
-    console.error("Failed to process score:", error);
-    res.status(500).json({ message: "Error processing score" });
+    console.error("Failed to submit score:", error);
+    res.status(500).json({ message: "Error submitting score" });
   }
 }

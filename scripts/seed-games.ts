@@ -1,5 +1,5 @@
 import { MongoClient } from "mongodb";
-import { sampleGames } from "../lib/games.js";
+import { sampleGames } from "../lib/games.ts";
 import "dotenv/config"
 
 async function seedGames() {

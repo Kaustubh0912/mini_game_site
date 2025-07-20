@@ -941,6 +941,7 @@ const BreakoutGame = () => {
           userId: session.user.id,
           gameSlug: "breakout",
           score,
+          timestamp: new Date().toISOString(),
         }),
       }).catch((e) => console.error("Score submit failed", e));
     }
