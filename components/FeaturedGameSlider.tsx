@@ -5,16 +5,21 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Game } from "@/lib/games";
 import Image from "next/image";
 import Link from "next/link";
+import { FeaturedSliderSkeleton } from "@/components/LoadingSkeleton";
 
 type FeaturedGameSliderProps = {
   games: Game[];
+  isLoading?: boolean;
 };
 
-export default function FeaturedGameSlider({ games }: FeaturedGameSliderProps) {
+export default function FeaturedGameSlider({
+  games,
+  isLoading = false,
+}: FeaturedGameSliderProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  if (!games || games.length === 0) {
-    return null; // Or return a placeholder/loading state
+  if (isLoading || !games || games.length === 0) {
+    return <FeaturedSliderSkeleton />;
   }
 
   const handleNext = () => {

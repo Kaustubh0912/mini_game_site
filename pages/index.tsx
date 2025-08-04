@@ -15,7 +15,8 @@ import type { GetServerSideProps } from "next";
 import clientPromise from "@/lib/mongodb";
 import type { Game } from "@/lib/games";
 
-interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+interface ImageWithFallbackProps
+  extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
   fallbackSrc: string;
   alt: string;
@@ -51,7 +52,7 @@ const ImageWithFallback = ({
       {...props}
     />
   );
-}
+};
 
 // Types
 type HomePageProps = {
@@ -177,16 +178,21 @@ export default function HomePage({
   };
 
   useEffect(() => {
-    // Load recently played games if user is logged in
-    if (session) {
-      // You can implement this logic to fetch recently played games
-      // For now, we'll just set it to empty array
-      setRecentlyPlayed([]);
-    }
-    setIsLoading(false);
+    // Small delay to ensure smooth loading transition
+    const timer = setTimeout(() => {
+      // Load recently played games if user is logged in
+      if (session) {
+        // You can implement this logic to fetch recently played games
+        // For now, we'll just set it to empty array
+        setRecentlyPlayed([]);
+      }
+      setIsLoading(false);
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [session]);
 
-  if (isLoading) {
+  if (isLoading || (!featuredGames && !popularGames)) {
     return <LoadingSkeleton />;
   }
 
@@ -255,7 +261,7 @@ export default function HomePage({
             Featured Games
           </motion.h2>
           {featuredGames.length > 0 ? (
-            <FeaturedGameSlider games={featuredGames} />
+            <FeaturedGameSlider games={featuredGames} isLoading={isLoading} />
           ) : (
             <EmptyState message="No featured games available at the moment." />
           )}

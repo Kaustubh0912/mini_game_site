@@ -7,7 +7,6 @@ import Image from "next/image";
 import { Game } from "@/lib/games";
 import { easeInOut } from "framer-motion";
 
-
 type GameCardProps = {
   game: Game;
   featured?: boolean;

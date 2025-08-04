@@ -8,6 +8,7 @@ import { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import clientPromise from "@/lib/mongodb";
 import { FiSearch, FiFilter, FiGrid, FiList, FiX } from "react-icons/fi";
 import debounce from "lodash/debounce";
+import { GameGridSkeleton } from "@/components/LoadingSkeleton";
 
 type ViewMode = "grid" | "list";
 type SortOption = "popular" | "newest" | "alphabetical" | "rating";
@@ -36,7 +37,7 @@ export const getServerSideProps: GetServerSideProps<{
 
     // Get unique categories
     const categories = Array.from(
-      new Set(games.map((game) => game.category).filter(Boolean))
+      new Set(games.map((game) => game.category).filter(Boolean)),
     );
 
     return {
@@ -62,6 +63,7 @@ export default function GamesPage({
   const [sortBy, setSortBy] = useState<SortOption>("popular");
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [filteredGames, setFilteredGames] = useState(initialGames);
+  const [isLoading, setIsLoading] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     search: "",
     difficulties: [],
@@ -86,33 +88,36 @@ export default function GamesPage({
 
   // Debounced search function
   const debouncedSearch = debounce((searchTerm: string) => {
+    setIsLoading(true);
     setFilters((prev) => ({ ...prev, search: searchTerm }));
+    // Simulate loading delay for better UX
+    setTimeout(() => setIsLoading(false), 300);
   }, 300);
 
   useEffect(() => {
-  // Set a temporary filter state (e.g., category = "Puzzle")
-  setFilters({
-    search: "",
-    difficulties: [],
-    categories: ["Puzzle"],
-  });
-
-  // Reset to default after 100ms
-  const timer = setTimeout(() => {
+    // Set a temporary filter state (e.g., category = "Puzzle")
     setFilters({
       search: "",
       difficulties: [],
-      categories: [],
+      categories: ["Puzzle"],
     });
-  }, 100);
 
-  // Cleanup in case component unmounts before timeout completes
-  return () => clearTimeout(timer);
-}, []);
+    // Reset to default after 100ms
+    const timer = setTimeout(() => {
+      setFilters({
+        search: "",
+        difficulties: [],
+        categories: [],
+      });
+    }, 100);
 
+    // Cleanup in case component unmounts before timeout completes
+    return () => clearTimeout(timer);
+  }, []);
 
   // Apply filters and sorting
   useEffect(() => {
+    setIsLoading(true);
     let result = [...initialGames];
 
     // Apply search filter
@@ -121,21 +126,21 @@ export default function GamesPage({
       result = result.filter(
         (game) =>
           game.name.toLowerCase().includes(searchLower) ||
-          game.description.toLowerCase().includes(searchLower)
+          game.description.toLowerCase().includes(searchLower),
       );
     }
 
     // Apply difficulty filter
     if (filters.difficulties.length > 0) {
       result = result.filter((game) =>
-        filters.difficulties.includes(game.difficulty as Difficulty)
+        filters.difficulties.includes(game.difficulty as Difficulty),
       );
     }
 
     // Apply category filter
     if (filters.categories.length > 0) {
       result = result.filter(
-        (game) => game.category && filters.categories.includes(game.category)
+        (game) => game.category && filters.categories.includes(game.category),
       );
     }
 
@@ -157,6 +162,8 @@ export default function GamesPage({
     });
 
     setFilteredGames(result);
+    // Small delay to show loading state for better UX
+    setTimeout(() => setIsLoading(false), 150);
   }, [filters, sortBy, initialGames]);
 
   return (
@@ -252,33 +259,39 @@ export default function GamesPage({
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className={`grid gap-6 ${
-            viewMode === "grid"
-              ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-              : "grid-cols-1"
-          }`}
-        >
-          {filteredGames.map((game) => (
-            <motion.div key={game.id} variants={itemVariants}>
-              <GameCard game={game} />
+        {isLoading ? (
+          <GameGridSkeleton count={8} />
+        ) : (
+          <>
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className={`grid gap-6 ${
+                viewMode === "grid"
+                  ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                  : "grid-cols-1"
+              }`}
+            >
+              {filteredGames.map((game) => (
+                <motion.div key={game.id} variants={itemVariants}>
+                  <GameCard game={game} />
+                </motion.div>
+              ))}
             </motion.div>
-          ))}
-        </motion.div>
 
-        {filteredGames.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12"
-          >
-            <p className="text-gray-500 dark:text-gray-400">
-              No games found matching your criteria.
-            </p>
-          </motion.div>
+            {filteredGames.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-12"
+              >
+                <p className="text-gray-500 dark:text-gray-400">
+                  No games found matching your criteria.
+                </p>
+              </motion.div>
+            )}
+          </>
         )}
       </div>
 
@@ -323,7 +336,7 @@ export default function GamesPage({
                         <input
                           type="checkbox"
                           checked={filters.difficulties.includes(
-                            difficulty as Difficulty
+                            difficulty as Difficulty,
                           )}
                           onChange={(e) => {
                             setFilters((prev) => ({
@@ -334,7 +347,7 @@ export default function GamesPage({
                                     difficulty as Difficulty,
                                   ]
                                 : prev.difficulties.filter(
-                                    (d) => d !== difficulty
+                                    (d) => d !== difficulty,
                                   ),
                             }));
                           }}
