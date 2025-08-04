@@ -7,13 +7,14 @@ import dynamic from "next/dynamic";
 import clientPromise from "@/lib/mongodb";
 
 // Define available games
-const AVAILABLE_GAMES = ["tic-tac-toe", "snake", "breakout"];
+const AVAILABLE_GAMES = ["tic-tac-toe", "snake", "breakout", "hangman"];
 
 // Dynamically import game components
 const gameComponents = {
   "tic-tac-toe": dynamic(() => import("@/games/tic-tac-toe")),
   snake: dynamic(() => import("@/games/snake")),
   breakout: dynamic(() => import("@/games/breakout")),
+  hangman: dynamic(() => import("@/games/hangman")),
 };
 
 // Types

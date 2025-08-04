@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "node --loader ts-node/esm scripts/seed-games.ts"
+    "seed": "node scripts/seed-games.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

@@ -49,14 +49,18 @@ export const getServerSideProps: GetServerSideProps<{
 
     const scores = await res.json();
 
-    // Calculate stats
+    // Calculate stats with safe fallbacks
     const stats = {
-      totalPlayers: scores.length,
-      averageScore: Math.round(
-        scores.reduce((acc: number, curr: Score) => acc + curr.score, 0) /
-          scores.length
-      ),
-      highestScore: Math.max(...scores.map((s: Score) => s.score)),
+      totalPlayers: scores.length || 0,
+      averageScore:
+        scores.length > 0
+          ? Math.round(
+              scores.reduce((acc: number, curr: Score) => acc + curr.score, 0) /
+                scores.length,
+            )
+          : 0,
+      highestScore:
+        scores.length > 0 ? Math.max(...scores.map((s: Score) => s.score)) : 0,
     };
 
     return {
@@ -120,7 +124,7 @@ export default function LeaderboardPage({
 
     try {
       const res = await fetch(
-        `/api/scores/${gameSlug}?timeFrame=${newTimeFrame}`
+        `/api/scores/${gameSlug}?timeFrame=${newTimeFrame}`,
       );
       const newScores = await res.json();
       setScores(newScores);
@@ -174,7 +178,7 @@ export default function LeaderboardPage({
                   Total Players
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.totalPlayers.toLocaleString()}
+                  {(stats?.totalPlayers ?? 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -195,7 +199,7 @@ export default function LeaderboardPage({
                   Average Score
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.averageScore.toLocaleString()}
+                  {(stats?.averageScore ?? 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -216,7 +220,7 @@ export default function LeaderboardPage({
                   Highest Score
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.highestScore.toLocaleString()}
+                  {(stats?.highestScore ?? 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -241,7 +245,7 @@ export default function LeaderboardPage({
                 >
                   {tf.charAt(0).toUpperCase() + tf.slice(1)}
                 </button>
-              )
+              ),
             )}
           </div>
         </div>
@@ -275,83 +279,104 @@ export default function LeaderboardPage({
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                 <AnimatePresence>
-                  {isLoading
-                    ? // Loading skeleton
-                      [...Array(10)].map((_, i) => (
-                        <motion.tr
-                          key={`skeleton-${i}`}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="animate-pulse"
-                        >
-                          <td className="px-6 py-4">
-                            <div className="h-4 w-8 bg-gray-200 dark:bg-slate-600 rounded" />
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center">
-                              <div className="h-10 w-10 bg-gray-200 dark:bg-slate-600 rounded-full" />
-                              <div className="ml-4 h-4 w-24 bg-gray-200 dark:bg-slate-600 rounded" />
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="h-4 w-16 bg-gray-200 dark:bg-slate-600 rounded" />
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="h-4 w-24 bg-gray-200 dark:bg-slate-600 rounded" />
-                          </td>
-                        </motion.tr>
-                      ))
-                    : scores.map((score, index) => (
-                        <motion.tr
-                          key={`${score.userId}-${index}`}
-                          variants={itemVariants}
-                          className={`${
-                            session?.user?.id === score.userId
-                              ? "bg-primary/5 dark:bg-primary/10"
-                              : "hover:bg-gray-50 dark:hover:bg-slate-700"
-                          }`}
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                                {index + 1}
-                              </span>
-                              {score.previousRank && score.rank && (
-                                <span className="ml-2">
-                                  {score.previousRank > score.rank ? (
-                                    <FiArrowUp className="w-4 h-4 text-green-500" />
-                                  ) : score.previousRank < score.rank ? (
-                                    <FiArrowDown className="w-4 h-4 text-red-500" />
-                                  ) : null}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <Image
-                                src={score.image}
-                                alt={score.name}
-                                width={40}
-                                height={40}
-                                className="rounded-full"
-                              />
-                              <span className="ml-4 font-medium text-gray-900 dark:text-white">
-                                {score.name}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                              {score.score.toLocaleString()}
+                  {isLoading ? (
+                    // Loading skeleton
+                    [...Array(10)].map((_, i) => (
+                      <motion.tr
+                        key={`skeleton-${i}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="animate-pulse"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="h-4 w-8 bg-gray-200 dark:bg-slate-600 rounded" />
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 bg-gray-200 dark:bg-slate-600 rounded-full" />
+                            <div className="ml-4 h-4 w-24 bg-gray-200 dark:bg-slate-600 rounded" />
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="h-4 w-16 bg-gray-200 dark:bg-slate-600 rounded" />
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="h-4 w-24 bg-gray-200 dark:bg-slate-600 rounded" />
+                        </td>
+                      </motion.tr>
+                    ))
+                  ) : scores && scores.length > 0 ? (
+                    scores.map((score, index) => (
+                      <motion.tr
+                        key={`${score.userId}-${index}`}
+                        variants={itemVariants}
+                        className={`${
+                          session?.user?.id === score.userId
+                            ? "bg-primary/5 dark:bg-primary/10"
+                            : "hover:bg-gray-50 dark:hover:bg-slate-700"
+                        }`}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                              {index + 1}
                             </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                            {new Date(score.timestamp).toLocaleDateString("en-GB")}
-                          </td>
-                        </motion.tr>
-                      ))}
+                            {score.previousRank && score.rank && (
+                              <span className="ml-2">
+                                {score.previousRank > score.rank ? (
+                                  <FiArrowUp className="w-4 h-4 text-green-500" />
+                                ) : score.previousRank < score.rank ? (
+                                  <FiArrowDown className="w-4 h-4 text-red-500" />
+                                ) : null}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Image
+                              src={score.image}
+                              alt={score.name}
+                              width={40}
+                              height={40}
+                              className="rounded-full"
+                            />
+                            <span className="ml-4 font-medium text-gray-900 dark:text-white">
+                              {score.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                            {(score?.score ?? 0).toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
+                          {new Date(score.timestamp).toLocaleDateString(
+                            "en-GB",
+                          )}
+                        </td>
+                      </motion.tr>
+                    ))
+                  ) : (
+                    <motion.tr
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      <td colSpan={4} className="px-6 py-12 text-center">
+                        <div className="text-gray-500 dark:text-gray-400">
+                          <FaTrophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <p className="text-lg font-medium mb-2">
+                            No scores yet!
+                          </p>
+                          <p className="text-sm">
+                            Be the first to play and claim the top spot!
+                          </p>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  )}
                 </AnimatePresence>
               </tbody>
             </table>
@@ -359,7 +384,7 @@ export default function LeaderboardPage({
         </motion.div>
 
         {/* User's Position (if logged in) */}
-        {session && userScore && (
+        {session && userScore && scores && scores.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -378,14 +403,15 @@ export default function LeaderboardPage({
                   <p className="text-sm opacity-90">Your Position</p>
                   <p className="text-xl font-bold">
                     #
-                    {scores.findIndex((s) => s.userId === session.user?.id) + 1}
+                    {(scores?.findIndex((s) => s.userId === session.user?.id) ??
+                      -1) + 1}
                   </p>
                 </div>
               </div>
               <div>
                 <p className="text-sm opacity-90">Your Best Score</p>
                 <p className="text-xl font-bold">
-                  {userScore.score.toLocaleString()}
+                  {(userScore?.score ?? 0).toLocaleString()}
                 </p>
               </div>
             </div>

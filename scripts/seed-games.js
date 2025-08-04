@@ -1,24 +1,9 @@
-export interface Game {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  image: string;
-  difficulty?: "Easy" | "Medium" | "Hard";
-  category: string;
-  featured?: boolean;
-  isNew?: boolean;
-  totalPlays?: number;
-  rating?: number;
-  playTime?: string;
-  highScore?: number;
-  progress?: number;
-  createdAt: Date;
-  lastPlayed?: Date; // Optional, for games that have been played
-  recentAchievement?: string; // Optional, for games with achievements
-}
+import { MongoClient } from "mongodb";
+import dotenv from "dotenv";
 
-export const sampleGames: Game[] = [
+dotenv.config();
+
+const sampleGames = [
   {
     id: "1",
     slug: "tic-tac-toe",
@@ -100,3 +85,30 @@ export const sampleGames: Game[] = [
     createdAt: new Date("2023-01-05"),
   },
 ];
+
+async function seedGames() {
+  try {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      throw new Error("MongoDB URI not found in environment variables");
+    }
+
+    const client = await MongoClient.connect(uri);
+    const db = client.db("miniGamesDB");
+
+    // Clear existing games
+    await db.collection("games").deleteMany({});
+
+    // Insert sample games
+    await db.collection("games").insertMany(sampleGames);
+
+    console.log("Games seeded successfully!");
+    console.log(`Added ${sampleGames.length} games to the database`);
+    await client.close();
+  } catch (error) {
+    console.error("Error seeding games:", error);
+    process.exit(1);
+  }
+}
+
+seedGames();
