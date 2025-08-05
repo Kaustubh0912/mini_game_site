@@ -99,4 +99,20 @@ export const sampleGames: Game[] = [
     playTime: "3-8 min",
     createdAt: new Date("2023-01-05"),
   },
+  {
+    id: "6",
+    slug: "minesweeper",
+    name: "Minesweeper",
+    description:
+      "Clear the minefield without detonating any mines. Use logic and deduction to win!",
+    image: "/images/games/minesweeper.png",
+    difficulty: "Medium",
+    category: "Puzzle",
+    featured: true,
+    isNew: true,
+    totalPlays: 0,
+    rating: 4.3,
+    playTime: "5-15 min",
+    createdAt: new Date("2023-01-06"),
+  },
 ];
