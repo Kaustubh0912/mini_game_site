@@ -13,6 +13,7 @@ const AVAILABLE_GAMES = [
   "breakout",
   "hangman",
   "minesweeper",
+  "tetris",
 ];
 
 // Dynamically import game components
@@ -22,6 +23,7 @@ const gameComponents = {
   breakout: dynamic(() => import("@/games/breakout")),
   hangman: dynamic(() => import("@/games/hangman")),
   minesweeper: dynamic(() => import("@/games/minesweeper")),
+  tetris: dynamic(() => import("@/games/tetris")),
 };
 
 // Types

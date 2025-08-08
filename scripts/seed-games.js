@@ -100,6 +100,22 @@ const sampleGames = [
     playTime: "5-15 min",
     createdAt: new Date("2023-01-06"),
   },
+  {
+    id: "7",
+    slug: "tetris",
+    name: "Tetris",
+    description:
+      "Drop and arrange falling tetrominoes to clear lines. The classic block-stacking puzzle game!",
+    image: "/images/games/tetris.png",
+    difficulty: "Medium",
+    category: "Puzzle",
+    featured: true,
+    isNew: true,
+    totalPlays: 0,
+    rating: 4.6,
+    playTime: "10-30 min",
+    createdAt: new Date("2023-01-07"),
+  },
 ];
 
 async function seedGames() {
